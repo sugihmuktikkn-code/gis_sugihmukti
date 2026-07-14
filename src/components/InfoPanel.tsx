@@ -80,7 +80,7 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose, onStartNavig
         flex flex-col
         ${isOpen 
           ? isMinimized 
-            ? 'translate-y-[82%] md:translate-y-0' 
+            ? 'translate-y-[90%] md:translate-y-0' 
             : 'translate-y-0' 
           : 'translate-y-[120%]'
         } 
