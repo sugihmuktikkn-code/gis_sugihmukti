@@ -290,7 +290,7 @@ export default function App() {
         <NavigationControl position="top-right" showCompass={true} showZoom={false} />
 
         {/* TOGGLE 2D/3D BUTTON */}
-        <div className="absolute top-[212px] right-[12px] z-40 pointer-events-auto">
+        <div className="absolute top-[235px] right-[12px] z-40 pointer-events-auto">
           <button
             onClick={toggleViewMode}
             className="flex items-center justify-center w-[30px] h-[30px] bg-black/60 backdrop-blur-md border border-white/15 rounded-lg text-white shadow-lg cursor-pointer hover:bg-white/10 transition-colors"
