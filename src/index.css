@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@theme {
+  --color-app-bg: #000000;
+  --color-app-panel: rgba(20, 25, 20, 0.6);
+  --color-app-accent: #f59e0b; /* Amber-500 */
+  --color-app-border: rgba(255, 255, 255, 0.15);
+  --color-app-text: #a1a1aa;
+  --color-app-text-dark: #f4f4f5;
+  --font-sans: "Helvetica Neue", Arial, sans-serif;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { opacity: 0; transform: scale(2.5); }
+}
+.animate-pulse-ring {
+  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px; 
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #333; 
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+@keyframes marker-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.4); }
+  100% { transform: scale(1.15); }
+}
+
+.animate-marker-pop {
+  animation: marker-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
