@@ -125,6 +125,20 @@ export default function App() {
 
   const activePOI = poiData.find(p => p.id === activePOIId) || null;
 
+  const etaTime = useMemo(() => {
+    if (!activePOI || !activePOI.time) return '';
+    const match = activePOI.time.match(/(\d+)/);
+    if (!match) return '';
+    const minutes = parseInt(match[1], 10);
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + minutes);
+    return now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  }, [activePOI]);
+
+  const handleCancelNavigation = () => {
+    setNavigationRoute(null);
+  };
+
   const handleFilterChange = (newFilter: string) => {
     setActiveFilter(newFilter);
     setActivePOIId(null);
@@ -347,13 +361,38 @@ export default function App() {
       />
 
       {/* PANEL INFORMASI KIRI / BOTTOM SHEET */}
-      <InfoPanel 
-        poi={activePOI} 
-        onClose={() => setActivePOIId(null)} 
-        onStartNavigation={handleStartNavigation}
-        isNavigating={isNavigating}
-        forceMinimize={!!navigationRoute}
-      />
+      {!navigationRoute && (
+        <InfoPanel 
+          poi={activePOI} 
+          onClose={() => setActivePOIId(null)} 
+          onStartNavigation={handleStartNavigation}
+          isNavigating={isNavigating}
+          forceMinimize={!!navigationRoute}
+        />
+      )}
+
+      {/* GOOGLE MAPS NAVIGATION PANEL */}
+      {navigationRoute && activePOI && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md bg-slate-950/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center justify-between shadow-[0_10px_30px_rgba(0,0,0,0.6)] text-white animate-in slide-in-from-bottom-8">
+          <div className="flex flex-col">
+            <span className="text-emerald-400 text-xl font-black tracking-tight flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="animate-pulse"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+              {activePOI.time}
+            </span>
+            <span className="text-xs text-slate-300 font-semibold mt-0.5">
+              {activePOI.distance} • Est. Tiba pukul {etaTime}
+            </span>
+          </div>
+          
+          <button 
+            onClick={handleCancelNavigation}
+            className="flex items-center justify-center w-10 h-10 bg-rose-600 hover:bg-rose-500 rounded-full text-white shadow-lg transition-colors cursor-pointer shrink-0"
+            title="Keluar Navigasi"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+      )}
 
       {/* MENU BAWAH & CAROUSEL (HIDDEN ON MOBILE) */}
       {!activePOI && (
