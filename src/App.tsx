@@ -308,7 +308,7 @@ export default function App() {
       {/* GRADIENT OVERLAY */}
       <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-60 pointer-events-none" />
 
-      <TopNav />
+      <TopNav pois={poiData} onSelectPOI={setActivePOIId} />
 
       {/* FILTER PILLS - MOVED TO TOP (BELOW TOPNAV) */}
       <div className="absolute top-20 left-0 right-0 z-30 pointer-events-none">
