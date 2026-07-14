@@ -4,16 +4,17 @@ interface MetricsWidgetProps {
   activePOI: POI | null;
   onStartNavigation: () => void;
   isNavigating: boolean;
+  onClose: () => void;
 }
 
-export function MetricsWidget({ activePOI, onStartNavigation, isNavigating }: MetricsWidgetProps) {
+export function MetricsWidget({ activePOI, onStartNavigation, isNavigating, onClose }: MetricsWidgetProps) {
   if (!activePOI) return null;
 
   return (
-    <div className="fixed top-40 right-4 md:right-8 z-30 flex flex-col w-[280px] bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl p-6 transition-all duration-500 animate-in fade-in slide-in-from-right-8">
+    <div className="hidden md:flex fixed top-40 right-4 md:right-8 z-30 flex-col w-[280px] bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl p-6 transition-all duration-500 animate-in fade-in slide-in-from-right-8">
       <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
         <h3 className="font-bold text-white tracking-wide">Rute Terpilih</h3>
-        <button className="text-gray-400 hover:text-white transition-colors cursor-pointer">
+        <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors cursor-pointer">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>

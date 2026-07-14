@@ -3,206 +3,169 @@ import React, { useState, useEffect, useRef } from 'react';
 interface InfoPanelProps {
   poi: any | null;
   onClose: () => void;
+  onStartNavigation?: () => void;
+  isNavigating?: boolean;
 }
 
-export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose }) => {
+export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose, onStartNavigation, isNavigating }) => {
   const [displayPoi, setDisplayPoi] = useState<any | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [height, setHeight] = useState(65); 
-  const [isDragging, setIsDragging] = useState(false);
-  
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (poi) {
-      setDisplayPoi(poi); 
-      setHeight(65);
-      
-      // Reset posisi scroll ke kiri (0) secara instan setiap kali tempat baru diklik
+      setDisplayPoi(poi);
+      setIsMinimized(false); // Reset minimize state on new selection
+      setTimeout(() => setIsOpen(true), 10);
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollLeft = 0;
       }
-
-      setTimeout(() => setIsOpen(true), 10);
     } else {
-      setIsOpen(false); 
+      setIsOpen(false);
     }
   }, [poi]);
 
-  // Efek untuk auto-scroll (geser otomatis) gambar/video
-  useEffect(() => {
-    let intervalId: ReturnType<typeof setInterval>;
-    if (isOpen && scrollContainerRef.current) {
-      intervalId = setInterval(() => {
-        const container = scrollContainerRef.current;
-        if (container) {
-          const maxScroll = container.scrollWidth - container.clientWidth;
-          const currentScroll = container.scrollLeft;
-          
-          if (currentScroll >= maxScroll - 10) {
-            container.scrollTo({ left: 0, behavior: 'smooth' });
-          } else {
-            container.scrollBy({ left: container.clientWidth, behavior: 'smooth' });
-          }
-        }
-      }, 3000); // Geser setiap 3 detik
-    }
-    return () => clearInterval(intervalId);
-  }, [isOpen]);
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    setIsDragging(true);
-    e.currentTarget.setPointerCapture(e.pointerId); 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientY);
   };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging) return;
-    const windowHeight = window.innerHeight;
-    const newHeightVh = ((windowHeight - e.clientY) / windowHeight) * 100;
-    if (newHeightVh >= 25 && newHeightVh <= 90) {
-      setHeight(newHeightVh);
-    }
-  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStart === null) return;
+    const currentTouch = e.targetTouches[0].clientY;
+    const diff = currentTouch - touchStart;
 
-  const handlePointerUp = (e: React.PointerEvent) => {
-    setIsDragging(false);
-    e.currentTarget.releasePointerCapture(e.pointerId);
+    // Swipe down to minimize
+    if (diff > 50) {
+      setIsMinimized(true);
+      setTouchStart(null);
+    }
+    // Swipe up to maximize
+    else if (diff < -50) {
+      setIsMinimized(false);
+      setTouchStart(null);
+    }
   };
 
   if (!displayPoi) return null;
 
   const namaTempat = displayPoi.title || displayPoi.name || "Nama Tempat";
   const kategori = displayPoi.category || "WISATA";
-  const harga = displayPoi.price || "Segera diinformasikan";
-  const jarak = displayPoi.distance || "3.0 km";
-  // Tarik data jam buka, default jika kosong
-  const jamBuka = displayPoi.hours || "Buka Setiap Hari"; 
+  const deskripsi = displayPoi.description || "";
+  const imageUrl = displayPoi.image || 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=500&q=80';
+  const wa = displayPoi.contact;
+  const isVila = displayPoi.type === 'vila' || displayPoi.type === 'homestay';
 
-  // MENYUSUN MEDIA
-  const mediaItems = [];
-  
-  if (displayPoi.video) {
-    mediaItems.push({ type: 'video', url: displayPoi.video });
-  }
-  if (displayPoi.image) {
-    mediaItems.push({ type: 'image', url: displayPoi.image });
-  }
-  
-  mediaItems.push(
-    { type: 'image', url: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=500&q=80' },
-    { type: 'image', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=500&q=80' }
-  );
-
+  // Desktop styles: floating card bottom-left
+  // Mobile styles: bottom sheet with swipe
   return (
     <div 
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       className={`
-        fixed left-0 top-20 bottom-24 z-50 flex items-center pl-4 md:pl-8 pointer-events-none 
-        transition-transform duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]
-        ${isOpen ? 'translate-x-0' : '-translate-x-[120%]'} 
+        fixed z-50 transition-transform duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]
+        /* Mobile: Bottom Sheet */
+        bottom-0 left-0 right-0 rounded-t-3xl border-t
+        /* Desktop: Floating Card */
+        md:bottom-6 md:left-6 md:right-auto md:w-[400px] md:rounded-3xl md:border
+        bg-slate-900/95 border-slate-700 shadow-2xl backdrop-blur-xl text-white
+        flex flex-col
+        ${isOpen 
+          ? isMinimized 
+            ? 'translate-y-[82%] md:translate-y-0' 
+            : 'translate-y-0' 
+          : 'translate-y-[120%]'
+        } 
       `}
+      style={{ maxHeight: '85vh' }}
     >
+      {/* Grab Handle (Mobile Only) */}
       <div 
-        className={`
-          w-[90vw] md:w-96 h-full max-h-[80vh] bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl 
-          flex flex-col pointer-events-auto font-sans text-white
-          transition-all duration-300
-        `}
+        className="w-full flex justify-center pt-3 pb-3 md:hidden cursor-pointer" 
+        onClick={() => setIsMinimized(!isMinimized)}
       >
-        {/* Hilangkan handle drag karena panel sekarang di samping */}
-        <div className="w-full flex justify-end pt-4 pr-4 z-20">
-          <button 
-            onClick={onClose}
-            className="bg-white/5 hover:bg-white/10 p-2 rounded-full transition-colors border border-white/10 cursor-pointer"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
+        <div className="w-12 h-1.5 bg-slate-600 rounded-full"></div>
+      </div>
+
+      {/* Close Button */}
+      <button 
+        onClick={onClose}
+        className="absolute top-4 right-4 z-20 bg-black/60 hover:bg-black/80 p-2.5 rounded-full backdrop-blur-md transition-colors cursor-pointer text-white border border-white/10"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <div className="overflow-y-auto custom-scrollbar flex-1 pb-6 md:pb-4 rounded-t-3xl md:rounded-3xl">
+        {/* Banner Image */}
+        <div className="relative w-full h-48 md:h-56 flex-shrink-0">
+          <img src={imageUrl} alt={namaTempat} className="w-full h-full object-cover rounded-t-3xl md:rounded-t-3xl" />
+          <div className="absolute top-4 left-4 bg-amber-500/90 backdrop-blur-md px-3 py-1 rounded-full shadow-lg">
+            <span className="text-black text-[10px] font-bold tracking-widest uppercase">{kategori}</span>
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-80 pointer-events-none"></div>
         </div>
 
-        <div className="overflow-y-auto px-6 pb-6 custom-scrollbar flex-1 relative">
+        {/* Content Details */}
+        <div className="px-5 pt-3">
+          <h2 className="text-2xl font-black text-white mb-2 leading-tight drop-shadow-sm">{namaTempat}</h2>
           
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-amber-500 text-xs font-bold tracking-widest uppercase py-1">
-              {kategori}
-            </span>
-          </div>
-
-          {/* AREA SCROLL HORIZONTAL */}
-          <div className="w-full mb-8">
-            <div 
-              ref={scrollContainerRef} 
-              className="flex gap-4 overflow-x-auto custom-scrollbar pb-3 snap-x snap-mandatory"
-            >
-              {mediaItems.map((item, index) => (
-                <div 
-                  key={index} 
-                  className="w-[90%] sm:min-w-full h-48 md:h-64 flex-shrink-0 snap-center rounded-2xl overflow-hidden border border-gray-800 bg-black"
-                >
-                  {item.type === 'video' ? (
-                    <iframe 
-                      className="w-full h-full" 
-                      src={item.url} 
-                      title={`Video Preview ${index}`}
-                      allowFullScreen 
-                    />
-                  ) : (
-                    <img 
-                      src={item.url} 
-                      alt={`Gallery ${index}`} 
-                      className="w-full h-full object-cover" 
-                    />
-                  )}
-                </div>
-              ))}
+          {/* Quick Info Badges */}
+          <div className="flex gap-3 mb-4 overflow-x-auto hide-scrollbar pb-1">
+            <div className="flex items-center gap-1.5 text-xs text-gray-300 bg-white/5 px-2.5 py-1 rounded-lg border border-white/10 shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              {displayPoi.price}
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-gray-300 bg-white/5 px-2.5 py-1 rounded-lg border border-white/10 shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              {displayPoi.hours}
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 shrink-0 font-medium">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+              {displayPoi.distance}
             </div>
           </div>
 
-          <div className="mb-6">
-            <h2 className="text-3xl font-black text-white mb-3">{namaTempat}</h2>
-            <p className="text-gray-400 leading-relaxed text-sm">{displayPoi.description}</p>
+          <p className="text-gray-400 text-sm leading-relaxed mb-6">
+            {deskripsi}
+          </p>
+
+          <div className="flex flex-col gap-2.5">
+            {/* Start Navigation CTA (Google Maps style) */}
+            {onStartNavigation && displayPoi.id !== 'kantor-desa' && (
+              <button 
+                onClick={onStartNavigation}
+                disabled={isNavigating}
+                className="w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20 disabled:opacity-75"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                {isNavigating ? 'Memuat Rute...' : 'Mulai Navigasi'}
+              </button>
+            )}
+
+            {/* WA Chat CTA */}
+            {wa && (
+              <a 
+                href={`https://wa.me/${wa}?text=${encodeURIComponent(`Halo, saya ingin info lebih lanjut mengenai ${namaTempat}.`)}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg
+                  ${isVila 
+                    ? 'bg-[#25D366] hover:bg-[#1ebd5d] text-white shadow-[#25D366]/20' 
+                    : 'bg-white/5 border border-white/10 hover:bg-white/10 text-white shadow-black/20'
+                  }
+                `}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                {isVila ? 'Cek Ketersediaan Kamar' : 'Hubungi Pengelola'}
+              </a>
+            )}
           </div>
-
-          {/* AREA INFORMASI: Harga, Jam Buka & Jarak */}
-          <div className="flex flex-wrap items-center gap-4 mb-8">
-            <div className="bg-white/5 border border-white/10 rounded-2xl py-3 px-5 flex items-center gap-3">
-              <span className="text-gray-400 text-sm">Harga</span>
-              <span className="text-white font-extrabold text-base">{harga}</span>
-            </div>
-            
-            {/* TAMBAHAN KOTAK INFORMASI JAM BUKA */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl py-3 px-5 flex items-center gap-3">
-              <span className="text-gray-400 text-sm">Jam</span>
-              <span className="text-white font-extrabold text-base">{jamBuka}</span>
-            </div>
-
-            <div className="flex items-center gap-2 px-2">
-              <span className="text-gray-400 text-base font-medium">{jarak}</span>
-            </div>
-          </div>
-
-          {(displayPoi.type === 'vila' || displayPoi.type === 'homestay') && displayPoi.contact && (
-            <a 
-              href={`https://wa.me/${displayPoi.contact}?text=${encodeURIComponent(`Halo, saya ingin menanyakan ketersediaan tempat di ${namaTempat}.
-
-Berikut rincian pesanan saya:
-- Nama: 
-- Tanggal Check-in: 
-- Durasi Menginap: 
-- Jumlah Orang: 
-
-Mohon informasi lebih lanjut. Terima kasih!`)}`} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="w-full mb-8 bg-[#25D366] hover:bg-[#1ebd5d] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-[0_4px_15px_rgba(37,211,102,0.3)] cursor-pointer"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-              Cek Ketersediaan Tempat
-            </a>
-          )}
         </div>
       </div>
     </div>
   );
-};  
+};

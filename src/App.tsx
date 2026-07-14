@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import Map, { Marker, Source, Layer, MapRef, GeolocateControl } from 'react-map-gl';
+import Map, { Marker, Source, Layer, MapRef, GeolocateControl, NavigationControl } from 'react-map-gl';
 import { ChevronDown, ChevronUp, Layers, Box } from 'lucide-react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { MapPin } from './components/MapPin';
@@ -24,16 +24,35 @@ export default function App() {
   useEffect(() => {
     setNavigationRoute(null);
     
-    // Auto-pan kamera saat POI dipilih dari Carousel
+    // Auto-pan/FitBounds kamera saat POI dipilih
     if (activePOIId) {
       const poi = poiData.find(p => p.id === activePOIId);
+      const kantorDesa = poiData.find(p => p.id === 'kantor-desa');
       if (poi && mapRef.current) {
-        mapRef.current.flyTo({
-          center: [poi.longitude, poi.latitude],
-          zoom: 17,
-          duration: 1500,
-          essential: true
-        });
+        if (kantorDesa && poi.id !== 'kantor-desa') {
+          // Hitung batas (bounds) rute dari Kantor Desa ke POI
+          const minLng = Math.min(kantorDesa.longitude, poi.longitude);
+          const minLat = Math.min(kantorDesa.latitude, poi.latitude);
+          const maxLng = Math.max(kantorDesa.longitude, poi.longitude);
+          const maxLat = Math.max(kantorDesa.latitude, poi.latitude);
+          
+          mapRef.current.fitBounds(
+            [[minLng, minLat], [maxLng, maxLat]],
+            {
+              padding: { top: 150, bottom: 340, left: 60, right: 60 },
+              duration: 1500,
+              essential: true
+            }
+          );
+        } else {
+          // Jika memilih Kantor Desa, langsung zoom-in ke kantor desa
+          mapRef.current.flyTo({
+            center: [poi.longitude, poi.latitude],
+            zoom: 16.5,
+            duration: 1500,
+            essential: true
+          });
+        }
       }
     }
   }, [activePOIId]);
@@ -255,48 +274,69 @@ export default function App() {
           </Marker>
         ))}
 
-        {/* GEOLOCATE CONTROL (Lokasi Anda) */}
-        <GeolocateControl position="top-right" />
+        {/* GEOLOCATE CONTROL & NAVIGATION */}
+        <GeolocateControl 
+          ref={(ref) => {
+            // Auto trigger geolocation on mount
+            if (ref) {
+              setTimeout(() => ref.trigger(), 1000);
+            }
+          }}
+          position="top-right" 
+          trackUserLocation={true} 
+          showUserLocation={true} 
+          showAccuracyCircle={false}
+        />
+        <NavigationControl position="top-right" showCompass={true} showZoom={false} />
 
         {/* TOGGLE 2D/3D BUTTON */}
-        <div className="absolute top-24 right-4 md:right-8 z-40 pointer-events-auto">
+        <div className="absolute top-44 right-2 z-40 pointer-events-auto">
           <button
             onClick={toggleViewMode}
-            className="flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/20 rounded-full text-white text-xs font-bold transition-all shadow-[0_4px_15px_rgba(0,0,0,0.3)] cursor-pointer"
+            className="flex items-center justify-center w-7 h-7 bg-white hover:bg-gray-100 border-b border-gray-200 rounded text-black shadow-[0_0_0_2px_rgba(0,0,0,0.1)] cursor-pointer"
+            title={is3D ? "Switch to 2D" : "Switch to 3D"}
           >
             {is3D ? (
-              <>
-                <Layers size={14} className="text-sky-400" />
-                2D VIEW
-              </>
+              <Layers size={15} className="text-sky-500" />
             ) : (
-              <>
-                <Box size={14} className="text-amber-500" />
-                3D VIEW
-              </>
+              <Box size={15} className="text-amber-600" />
             )}
           </button>
         </div>
       </Map>
 
-      {/* GRADIENT OVERLAY (opsional agar teks di bawah lebih terbaca) */}
+      {/* GRADIENT OVERLAY */}
       <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-60 pointer-events-none" />
 
       <TopNav />
+
+      {/* FILTER PILLS - MOVED TO TOP (BELOW TOPNAV) */}
+      <div className="absolute top-20 left-0 right-0 z-30 pointer-events-none">
+        <FilterPills 
+          activeFilter={activeFilter} 
+          onChange={handleFilterChange} 
+        />
+      </div>
 
       {/* WIDGET KANAN (RUTE TERPILIH) */}
       <MetricsWidget 
         activePOI={activePOI} 
         onStartNavigation={handleStartNavigation}
         isNavigating={isNavigating}
+        onClose={() => setActivePOIId(null)}
       />
 
-      {/* PANEL INFORMASI KIRI */}
-      <InfoPanel poi={activePOI} onClose={() => setActivePOIId(null)} />
+      {/* PANEL INFORMASI KIRI / BOTTOM SHEET */}
+      <InfoPanel 
+        poi={activePOI} 
+        onClose={() => setActivePOIId(null)} 
+        onStartNavigation={handleStartNavigation}
+        isNavigating={isNavigating}
+      />
 
-      {/* MENU BAWAH & TOMBOL FILTER */}
+      {/* MENU BAWAH & CAROUSEL (HIDDEN ON MOBILE) */}
       {!activePOI && (
-        <div className="fixed bottom-6 left-0 right-0 z-30 px-4 md:px-8 pb-2 transition-all flex flex-col items-center pointer-events-none">
+        <div className="hidden md:flex fixed bottom-6 left-0 right-0 z-30 px-4 md:px-8 pb-2 transition-all flex-col items-center pointer-events-none">
           
           {/* TOMBOL TOGGLE CAROUSEL */}
           <div className="w-full max-w-5xl flex justify-center mb-2 pointer-events-auto">
@@ -314,17 +354,10 @@ export default function App() {
 
           {/* CAROUSEL REKOMENDASI */}
           {showCarousel && (
-            <div className="w-full pointer-events-auto mb-6 animate-in slide-in-from-bottom-5 fade-in duration-300">
+            <div className="w-full pointer-events-auto mb-2 animate-in slide-in-from-bottom-5 fade-in duration-300">
               <POICarousel pois={filteredPOIs} activeId={activePOIId} onSelect={setActivePOIId} />
             </div>
           )}
-
-          <div className="pointer-events-auto">
-            <FilterPills 
-              activeFilter={activeFilter} 
-              onChange={handleFilterChange} 
-            />
-          </div>
           
         </div>
       )}

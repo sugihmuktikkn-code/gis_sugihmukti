@@ -51,3 +51,26 @@
 .animate-marker-pop {
   animation: marker-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
+
+/* Push Mapbox control top-right wrapper down to prevent overlap with TopNav and FilterPills */
+.mapboxgl-ctrl-top-right {
+  top: 135px !important;
+  right: 12px !important;
+}
+
+/* Align Mapbox zoom and compass controls */
+.mapboxgl-ctrl-group {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 8px !important;
+}
+
+.mapboxgl-ctrl-group button {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+.mapboxgl-ctrl-icon {
+  filter: invert(1) !important;
+}
