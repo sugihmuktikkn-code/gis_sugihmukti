@@ -290,16 +290,16 @@ export default function App() {
         <NavigationControl position="top-right" showCompass={true} showZoom={false} />
 
         {/* TOGGLE 2D/3D BUTTON */}
-        <div className="absolute top-44 right-2 z-40 pointer-events-auto">
+        <div className="absolute top-[212px] right-[12px] z-40 pointer-events-auto">
           <button
             onClick={toggleViewMode}
-            className="flex items-center justify-center w-7 h-7 bg-white hover:bg-gray-100 border-b border-gray-200 rounded text-black shadow-[0_0_0_2px_rgba(0,0,0,0.1)] cursor-pointer"
+            className="flex items-center justify-center w-[30px] h-[30px] bg-black/60 backdrop-blur-md border border-white/15 rounded-lg text-white shadow-lg cursor-pointer hover:bg-white/10 transition-colors"
             title={is3D ? "Switch to 2D" : "Switch to 3D"}
           >
             {is3D ? (
-              <Layers size={15} className="text-sky-500" />
+              <Layers size={14} className="text-sky-400" />
             ) : (
-              <Box size={15} className="text-amber-600" />
+              <Box size={14} className="text-amber-500" />
             )}
           </button>
         </div>
