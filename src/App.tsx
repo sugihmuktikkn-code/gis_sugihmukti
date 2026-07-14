@@ -71,6 +71,26 @@ export default function App() {
           const data = await res.json();
           if (data.routes && data.routes[0]) {
             setNavigationRoute(data.routes[0].geometry);
+            
+            // FOKUS KE NAVIGASI: Fit Bounds dari seluruh koordinat rute navigasi aktif
+            const coordinates = data.routes[0].geometry.coordinates;
+            if (coordinates && coordinates.length > 0 && mapRef.current) {
+              const lats = coordinates.map((c: any) => c[1]);
+              const lngs = coordinates.map((c: any) => c[0]);
+              const minLng = Math.min(...lngs);
+              const minLat = Math.min(...lats);
+              const maxLng = Math.max(...lngs);
+              const maxLat = Math.max(...lats);
+              
+              mapRef.current.fitBounds(
+                [[minLng, minLat], [maxLng, maxLat]],
+                {
+                  padding: { top: 80, bottom: 120, left: 60, right: 60 },
+                  duration: 1500,
+                  essential: true
+                }
+              );
+            }
           } else {
             alert("Rute tidak ditemukan.");
           }
@@ -332,6 +352,7 @@ export default function App() {
         onClose={() => setActivePOIId(null)} 
         onStartNavigation={handleStartNavigation}
         isNavigating={isNavigating}
+        forceMinimize={!!navigationRoute}
       />
 
       {/* MENU BAWAH & CAROUSEL (HIDDEN ON MOBILE) */}

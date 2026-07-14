@@ -5,9 +5,10 @@ interface InfoPanelProps {
   onClose: () => void;
   onStartNavigation?: () => void;
   isNavigating?: boolean;
+  forceMinimize?: boolean;
 }
 
-export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose, onStartNavigation, isNavigating }) => {
+export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose, onStartNavigation, isNavigating, forceMinimize }) => {
   const [displayPoi, setDisplayPoi] = useState<any | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -26,6 +27,12 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose, onStartNavig
       setIsOpen(false);
     }
   }, [poi]);
+
+  useEffect(() => {
+    if (forceMinimize) {
+      setIsMinimized(true);
+    }
+  }, [forceMinimize]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientY);
