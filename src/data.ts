@@ -78,8 +78,14 @@ export const poiData: POI[] = [
     description: 'Kawasan danau kawah vulkanik Kawah Putih eksotis dan puncak Sunan Ibu, lokasi terbaik untuk melihat matahari terbit (Sunrise) dengan lautan awan yang memukau.',
     price: 'Rp 28.000',
     hours: '04:00 - 17:00 WIB',
-    image: 'https://images.unsplash.com/photo-1588668214407-6ea9a6d8c272?auto=format&fit=crop&q=80&w=800',
-    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY'
+    image: 'https://res.cloudinary.com/dkckkpear/image/upload/v1784137197/download_15_qelmii.jpg',
+    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY',
+    images: [
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784137197/download_15_qelmii.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784137197/download_14_bpcw9z.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784137197/download_16_josxfd.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784137197/kawah_Ijen_oicreo.jpg'
+    ]
   },
   {
     id: 'patuha',

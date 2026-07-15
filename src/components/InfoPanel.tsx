@@ -107,13 +107,36 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose, onStartNavig
       </button>
 
       <div className="overflow-y-auto custom-scrollbar flex-1 pb-6 md:pb-4 rounded-t-3xl md:rounded-3xl">
-        {/* Banner Image */}
-        <div className="relative w-full h-48 md:h-56 flex-shrink-0">
-          <img src={imageUrl} alt={namaTempat} className="w-full h-full object-cover rounded-t-3xl md:rounded-t-3xl" />
-          <div className="absolute top-4 left-4 bg-amber-500/90 backdrop-blur-md px-3 py-1 rounded-full shadow-lg">
+        {/* Banner Image (Carousel if multiple images exist) */}
+        <div className="relative w-full h-48 md:h-56 flex-shrink-0 overflow-hidden rounded-t-3xl md:rounded-t-3xl">
+          {displayPoi.images && displayPoi.images.length > 0 ? (
+            <div className="flex w-full h-full overflow-x-auto snap-x snap-mandatory hide-scrollbar">
+              {displayPoi.images.map((img: string, idx: number) => (
+                <img 
+                  key={idx} 
+                  src={img} 
+                  alt={`${namaTempat} ${idx + 1}`} 
+                  className="w-full h-full object-cover snap-center shrink-0" 
+                />
+              ))}
+            </div>
+          ) : (
+            <img src={imageUrl} alt={namaTempat} className="w-full h-full object-cover rounded-t-3xl md:rounded-t-3xl" />
+          )}
+          
+          <div className="absolute top-4 left-4 bg-amber-500/90 backdrop-blur-md px-3 py-1 rounded-full shadow-lg z-10">
             <span className="text-black text-[10px] font-bold tracking-widest uppercase">{kategori}</span>
           </div>
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-80 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-80 pointer-events-none z-10"></div>
+          
+          {/* Dot indicators for carousel */}
+          {displayPoi.images && displayPoi.images.length > 1 && (
+            <div className="absolute bottom-3 right-4 flex gap-1 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-full z-20">
+              {displayPoi.images.map((_: any, idx: number) => (
+                <div key={idx} className="w-1.5 h-1.5 rounded-full bg-white/60" />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Content Details */}

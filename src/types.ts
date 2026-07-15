@@ -18,4 +18,5 @@ export interface POI {
   contact?: string;
   image: string;
   video: string;
+  images?: string[];
 }
