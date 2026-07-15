@@ -13,15 +13,22 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose, onStartNavig
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
+  
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const bannerScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (poi) {
       setDisplayPoi(poi);
       setIsMinimized(false); // Reset minimize state on new selection
+      setActiveImageIdx(0);  // Reset image index
       setTimeout(() => setIsOpen(true), 10);
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollLeft = 0;
+      }
+      if (bannerScrollRef.current) {
+        bannerScrollRef.current.scrollLeft = 0;
       }
     } else {
       setIsOpen(false);
@@ -33,6 +40,35 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose, onStartNavig
       setIsMinimized(true);
     }
   }, [forceMinimize]);
+
+  // Efek scroll otomatis untuk gambar banner
+  useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval>;
+    if (isOpen && displayPoi && displayPoi.images && displayPoi.images.length > 1) {
+      intervalId = setInterval(() => {
+        const container = bannerScrollRef.current;
+        if (container) {
+          const nextIdx = (activeImageIdx + 1) % displayPoi.images.length;
+          const targetScroll = nextIdx * container.clientWidth;
+          container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+          setActiveImageIdx(nextIdx);
+        }
+      }, 3000); // Ganti gambar tiap 3 detik
+    }
+    return () => clearInterval(intervalId);
+  }, [isOpen, displayPoi, activeImageIdx]);
+
+  const handleBannerScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const scrollPos = container.scrollLeft;
+    const width = container.clientWidth;
+    if (width > 0) {
+      const currentIdx = Math.round(scrollPos / width);
+      if (currentIdx !== activeImageIdx) {
+        setActiveImageIdx(currentIdx);
+      }
+    }
+  };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientY);
@@ -64,8 +100,6 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose, onStartNavig
   const wa = displayPoi.contact;
   const isVila = displayPoi.type === 'vila' || displayPoi.type === 'homestay';
 
-  // Desktop styles: floating card bottom-left
-  // Mobile styles: bottom sheet with swipe
   return (
     <div 
       onTouchStart={handleTouchStart}
@@ -110,7 +144,11 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose, onStartNavig
         {/* Banner Image (Carousel if multiple images exist) */}
         <div className="relative w-full h-48 md:h-56 flex-shrink-0 overflow-hidden rounded-t-3xl md:rounded-t-3xl">
           {displayPoi.images && displayPoi.images.length > 0 ? (
-            <div className="flex w-full h-full overflow-x-auto snap-x snap-mandatory hide-scrollbar">
+            <div 
+              ref={bannerScrollRef}
+              onScroll={handleBannerScroll}
+              className="flex w-full h-full overflow-x-auto snap-x snap-mandatory hide-scrollbar"
+            >
               {displayPoi.images.map((img: string, idx: number) => (
                 <img 
                   key={idx} 
@@ -133,7 +171,10 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose, onStartNavig
           {displayPoi.images && displayPoi.images.length > 1 && (
             <div className="absolute bottom-3 right-4 flex gap-1 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-full z-20">
               {displayPoi.images.map((_: any, idx: number) => (
-                <div key={idx} className="w-1.5 h-1.5 rounded-full bg-white/60" />
+                <div 
+                  key={idx} 
+                  className={`w-1.5 h-1.5 rounded-full transition-all ${idx === activeImageIdx ? 'bg-amber-500 scale-125' : 'bg-white/60'}`} 
+                />
               ))}
             </div>
           )}
@@ -146,7 +187,7 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose, onStartNavig
           {/* Quick Info Badges */}
           <div className="flex gap-3 mb-4 overflow-x-auto hide-scrollbar pb-1">
             <div className="flex items-center gap-1.5 text-xs text-gray-300 bg-white/5 px-2.5 py-1 rounded-lg border border-white/10 shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              <span className="text-[10px] font-black text-amber-500 mr-0.5">Rp</span>
               {displayPoi.price}
             </div>
             <div className="flex items-center gap-1.5 text-xs text-gray-300 bg-white/5 px-2.5 py-1 rounded-lg border border-white/10 shrink-0">
@@ -176,21 +217,16 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose, onStartNavig
               </button>
             )}
 
-            {/* WA Chat CTA */}
-            {wa && (
+            {/* WA Chat CTA - Only show for Vilas/Homestays */}
+            {wa && isVila && (
               <a 
                 href={`https://wa.me/${wa}?text=${encodeURIComponent(`Halo, saya ingin info lebih lanjut mengenai ${namaTempat}.`)}`} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg
-                  ${isVila 
-                    ? 'bg-[#25D366] hover:bg-[#1ebd5d] text-white shadow-[#25D366]/20' 
-                    : 'bg-white/5 border border-white/10 hover:bg-white/10 text-white shadow-black/20'
-                  }
-                `}
+                className="w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg bg-[#25D366] hover:bg-[#1ebd5d] text-white shadow-[#25D366]/20"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                {isVila ? 'Cek Ketersediaan Kamar' : 'Hubungi Pengelola'}
+                Cek Ketersediaan Kamar
               </a>
             )}
           </div>
