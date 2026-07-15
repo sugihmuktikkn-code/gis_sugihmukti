@@ -84,7 +84,9 @@ export const poiData: POI[] = [
       'https://res.cloudinary.com/dkckkpear/image/upload/v1784137197/download_15_qelmii.jpg',
       'https://res.cloudinary.com/dkckkpear/image/upload/v1784137197/download_14_bpcw9z.jpg',
       'https://res.cloudinary.com/dkckkpear/image/upload/v1784137197/download_16_josxfd.jpg',
-      'https://res.cloudinary.com/dkckkpear/image/upload/v1784137197/kawah_Ijen_oicreo.jpg'
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784137197/kawah_Ijen_oicreo.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784156979/Kawah_putih_tzl6go.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784156981/download_17_vyqawb.jpg'
     ]
   },
   {
