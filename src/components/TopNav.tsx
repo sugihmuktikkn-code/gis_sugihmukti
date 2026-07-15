@@ -17,7 +17,6 @@ export function TopNav({ pois, onSelectPOI }: TopNavProps) {
     return pois.filter(
       poi => 
         (poi.title && poi.title.toLowerCase().includes(query)) ||
-        (poi.name && poi.name.toLowerCase().includes(query)) ||
         (poi.category && poi.category.toLowerCase().includes(query))
     );
   }, [searchQuery, pois]);
@@ -72,7 +71,7 @@ export function TopNav({ pois, onSelectPOI }: TopNavProps) {
             {suggestions.length > 0 && (
               <div className="absolute top-12 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto z-50">
                 {suggestions.map((poi) => {
-                  const title = poi.title || poi.name || "Tempat";
+                  const title = poi.title || "Tempat";
                   return (
                     <button
                       key={poi.id}
