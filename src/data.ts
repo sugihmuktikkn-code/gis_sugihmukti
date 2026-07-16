@@ -187,8 +187,14 @@ export const poiData: POI[] = [
     description: 'Ikon wisata pohon cemara unik berbentuk jamur raksasa di tengah hamparan perkebunan teh yang estetik.',
     price: 'Rp 15.000',
     hours: '08:00 - 17:00 WIB',
-    image: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=800',
-    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY'
+    image: 'https://res.cloudinary.com/dkckkpear/image/upload/v1784162575/Pohon_Berbentuk_Jamur_Payung_di_Bukit_Jamur_Rancabolang_Ciwidey_Bandung_Image_From_why_ajie____datwh5.jpg',
+    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY',
+    images: [
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784162575/Pohon_Berbentuk_Jamur_Payung_di_Bukit_Jamur_Rancabolang_Ciwidey_Bandung_Image_From_why_ajie____datwh5.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784162575/Berfoto_di_Bukit_Jamur_Rancabolang_Ciwidey_Image_From_fadhafiyyan_kf5ba8.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784162575/Pemandangan_Bukit_Jamur_Rancabolang_Ciwidey_Bandung_dari_Atas_Image_From_marztravel_vsbw9u.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784162582/Bandung-Bukit-Jamur-Ciwidey1_anz6aq.png'
+    ]
   },
 
   {
