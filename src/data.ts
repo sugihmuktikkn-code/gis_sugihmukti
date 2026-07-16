@@ -190,8 +190,13 @@ export const poiData: POI[] = [
     description: 'Wisata edukasi peternakan kambing etawa pilihan. Pengunjung bisa ikut memberi makan dan memerah susu kambing segar.',
     price: 'Rp 10.000',
     hours: '07:00 - 15:00 WIB',
-    image: 'https://images.unsplash.com/photo-1524024973431-2ad916746881?w=500&q=80',
-    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY'
+    image: 'https://res.cloudinary.com/dkckkpear/image/upload/v1784165198/IMG_20260713_093025_rro2ot.jpg',
+    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY',
+    images: [
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784165198/IMG_20260713_093025_rro2ot.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784165198/IMG_5142_noh7qp.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784165198/IMG_20260713_090252_hqruu3.jpg'
+    ]
   },
   {
     id: 'bukit-jamur',
