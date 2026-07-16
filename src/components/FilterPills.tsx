@@ -1,5 +1,5 @@
 import React from 'react';
-import { Map, Home, Tent } from 'lucide-react';
+import { Map, Home, Tent, Building } from 'lucide-react';
 
 interface FilterPillsProps {
   activeFilter: string;
@@ -10,7 +10,8 @@ export const FilterPills: React.FC<FilterPillsProps> = ({ activeFilter, onChange
   const filters = [
     { id: 'wisata', label: 'WISATA', Icon: Map },
     { id: 'vila', label: 'VILA', Icon: Home },
-    { id: 'homestay', label: 'HOMESTAY', Icon: Tent }
+    { id: 'homestay', label: 'HOMESTAY', Icon: Tent },
+    { id: 'fasilitas', label: 'FASILITAS UMUM', Icon: Building }
   ];
 
   return (

@@ -74,3 +74,8 @@
 .mapboxgl-ctrl-icon {
   filter: invert(1) !important;
 }
+
+/* Hide Mapbox Logo and Attribution */
+.mapboxgl-ctrl-logo, .mapboxgl-ctrl-attrib {
+  display: none !important;
+}

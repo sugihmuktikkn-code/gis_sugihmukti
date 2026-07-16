@@ -1,4 +1,4 @@
-import { Hammer, Tractor, Coffee, Target, Bird, Home, Tent, TreePine, Droplets } from 'lucide-react';
+import { Hammer, Tractor, Coffee, Target, Bird, Home, Tent, TreePine, Droplets, HeartPulse, Landmark, ShoppingBag } from 'lucide-react';
 import { POI } from './types';
 
 export const poiData: POI[] = [
@@ -22,7 +22,27 @@ export const poiData: POI[] = [
     price: 'Gratis',
     hours: '08:00 - 15:00 WIB',
     image: 'https://res.cloudinary.com/dkckkpear/image/upload/v1784168283/images_dp07mp.jpg',
-    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY'
+    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY',
+    packages: [
+      {
+        name: 'Eksplore Wisata Desa Sugihmukti (Two Day One Night)',
+        price: 'Rp 750.000 / Orang',
+        features: [
+          'Ketentuan: Minimal Pax 20 Orang',
+          'Home Stay (Merasakan menginap di desa selama 2 Hari 1 Malam)',
+          'Makan 4x',
+          'Kegiatan Memetik Strawberry langsung di kebun',
+          'Pemandu Wisata (Guide) khusus untuk Edukasi Birdwatching',
+          'Transportasi lokal menuju Objek Wisata',
+          'Kunjungan Pandai Besi: Proses tempa besi tradisional warisan leluhur',
+          'Wisata Kambing Etawa: Pengalaman memerah susu & memberi pakan',
+          'Kopi Trip Sugihmukti: Jelajahi kebun, petik biji, sangrai, & racik sendiri',
+          'Kesenian Pencak Silat: Seni bela diri warisan leluhur',
+          'Sensasi Birdwatching: Burung-burung endemik kaki Gunung Patuha',
+          'Kunjungan Air Terjun Lemah Nendeut: Kesegaran alam lokal'
+        ]
+      }
+    ]
   },
   {
     id: 'pyconon',
@@ -338,5 +358,8 @@ export function getIconForCategory(category: string) {
   if (cat.includes('budaya') || cat.includes('pandai besi')) return Hammer;
   if (cat.includes('edukasi') || cat.includes('tani') || cat.includes('kebun') || cat.includes('peternakan')) return Tractor;
   if (cat.includes('kopi') || cat.includes('kuliner')) return Coffee;
+  if (cat.includes('puskesmas') || cat.includes('klinik') || cat.includes('kesehatan') || cat.includes('rs') || cat.includes('rumah sakit')) return HeartPulse;
+  if (cat.includes('masjid') || cat.includes('musholla') || cat.includes('ibadah') || cat.includes('mesjid')) return Landmark;
+  if (cat.includes('market') || cat.includes('toko') || cat.includes('warung') || cat.includes('pasar') || cat.includes('minimarket') || cat.includes('supermarket')) return ShoppingBag;
   return Target; // default fallback
 }

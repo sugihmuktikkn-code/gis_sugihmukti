@@ -35,8 +35,12 @@ export function TopNav({ pois, onSelectPOI, isAdmin, onOpenLoginModal, onLogout 
       className="fixed top-4 left-0 right-0 z-40 flex justify-between items-center px-4 md:px-8 pointer-events-none"
     >
       <div className={`items-center gap-3 min-w-0 pointer-events-auto transition-all duration-300 ${isSearchOpen ? 'hidden md:flex' : 'flex'}`}>
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)] shrink-0">
-          <span className="text-black font-black text-sm">S</span>
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden bg-black/30 border border-white/10 shadow-[0_0_15px_rgba(245,158,11,0.3)] shrink-0">
+          <img 
+            src="https://res.cloudinary.com/dkckkpear/image/upload/v1784211246/Desain_tanpa_judul_16_jz9p4i.png" 
+            alt="Logo KKN" 
+            className="w-full h-full object-cover"
+          />
         </div>
         <div className="flex flex-col drop-shadow-md overflow-hidden pr-2">
           <span className="font-black text-sm md:text-base text-white truncate leading-none">

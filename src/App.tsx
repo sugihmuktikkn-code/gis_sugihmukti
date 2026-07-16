@@ -1,13 +1,12 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import Map, { Marker, Source, Layer, MapRef, GeolocateControl, NavigationControl } from 'react-map-gl';
-import { ChevronDown, ChevronUp, Layers, Box } from 'lucide-react';
+import { ChevronDown, ChevronUp, Layers, Box, Eye, EyeOff, Ruler, Navigation, Square, Play, Copy, Check, Trash2 } from 'lucide-react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { MapPin } from './components/MapPin';
 import { InfoPanel } from './components/InfoPanel';
 import { POICarousel } from './components/POICarousel';
 import { FilterPills } from './components/FilterPills';
 import { TopNav } from './components/TopNav';
-import { MetricsWidget } from './components/MetricsWidget';
 import { poiData, getIconForCategory } from './data';
 import { POI, TouristPackage } from './types';
 
@@ -19,10 +18,14 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return parsed.map((item: any) => ({
-          ...item,
-          icon: getIconForCategory(item.category)
-        }));
+        return parsed.map((item: any) => {
+          const defaultPoi = poiData.find(d => d.id === item.id);
+          return {
+            ...item,
+            packages: defaultPoi ? defaultPoi.packages : item.packages,
+            icon: getIconForCategory(item.category)
+          };
+        });
       } catch (e) {
         console.error(e);
       }
@@ -37,13 +40,51 @@ export default function App() {
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [showAddPoiModal, setShowAddPoiModal] = useState<boolean>(false);
   const [clickedCoords, setClickedCoords] = useState<{ lng: number; lat: number } | null>(null);
+  const [poiToEdit, setPoiToEdit] = useState<POI | null>(null);
 
   const [activePOIId, setActivePOIId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<string>('wisata');
   const [showCarousel, setShowCarousel] = useState<boolean>(true);
   const [is3D, setIs3D] = useState<boolean>(false);
+  const [mapStyle, setMapStyle] = useState<string>('mapbox://styles/alwancodet66/cmrfky2up002w01qr9ecv6ode');
+  const [showStyleSwitcher, setShowStyleSwitcher] = useState<boolean>(false);
+  const [isMeasuring, setIsMeasuring] = useState<boolean>(false);
+  const [measurePoints, setMeasurePoints] = useState<{ lng: number; lat: number }[]>([]);
   const [navigationRoute, setNavigationRoute] = useState<any>(null);
   const [isNavigating, setIsNavigating] = useState<boolean>(false);
+  const [travelMode, setTravelMode] = useState<'car' | 'motor' | 'walk'>('motor');
+
+  // Live GPS Trail Recorder states
+  const [isRecordingGPS, setIsRecordingGPS] = useState<boolean>(false);
+  const [recordedCoordinates, setRecordedCoordinates] = useState<[number, number][]>([]);
+  const watchId = useRef<number | null>(null);
+  const [recordedDistance, setRecordedDistance] = useState<number>(0);
+  const [showExportModal, setShowExportModal] = useState<boolean>(false);
+  const [copiedExport, setCopiedExport] = useState<boolean>(false);
+  const [localTrails, setLocalTrails] = useState<[number, number][][]>(() => {
+    const saved = localStorage.getItem('localTrails');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Haversine distance calculator
+  const calculateDistance = (coords: { lng: number; lat: number }[]) => {
+    let total = 0;
+    for (let i = 0; i < coords.length - 1; i++) {
+      const p1 = coords[i];
+      const p2 = coords[i + 1];
+      const R = 6371e3; // meters
+      const φ1 = p1.lat * Math.PI / 180;
+      const φ2 = p2.lat * Math.PI / 180;
+      const Δφ = (p2.lat - p1.lat) * Math.PI / 180;
+      const Δλ = (p2.lng - p1.lng) * Math.PI / 180;
+      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      total += R * c;
+    }
+    return total;
+  };
   const mapRef = useRef<MapRef>(null);
 
   useEffect(() => {
@@ -141,10 +182,91 @@ export default function App() {
       }, (error) => {
         alert("Gagal mendapatkan lokasi Anda. Pastikan GPS/Location aktif di browser.");
         setIsNavigating(false);
+      }, {
+        enableHighAccuracy: false, // Menghindari waktu tunggu satelit GPS hardware yang lama
+        maximumAge: 60000,         // Menggunakan cache koordinat jika kurang dari 1 menit
+        timeout: 6000              // Batasi waktu pencarian maksimal 6 detik
       });
     } else {
       alert("Browser Anda tidak mendukung Geolocation.");
     }
+  };
+
+  // Save local trails to localStorage
+  useEffect(() => {
+    localStorage.setItem('localTrails', JSON.stringify(localTrails));
+  }, [localTrails]);
+
+  const startGPSTracking = () => {
+    if (!navigator.geolocation) {
+      alert("Browser Anda tidak mendukung Geolocation.");
+      return;
+    }
+    setRecordedCoordinates([]);
+    setRecordedDistance(0);
+    setCopiedExport(false);
+    setIsRecordingGPS(true);
+
+    const getDistanceFromPoints = (lon1: number, lat1: number, lon2: number, lat2: number) => {
+      const R = 6371e3; // meters
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    };
+
+    watchId.current = navigator.geolocation.watchPosition((position) => {
+      const { longitude, latitude } = position.coords;
+      
+      setRecordedCoordinates(prev => {
+        if (prev.length === 0) {
+          mapRef.current?.flyTo({
+            center: [longitude, latitude],
+            zoom: 17,
+            pitch: 45,
+            duration: 1500
+          });
+          return [[longitude, latitude]];
+        }
+        
+        const lastPoint = prev[prev.length - 1];
+        const dist = getDistanceFromPoints(lastPoint[0], lastPoint[1], longitude, latitude);
+        
+        // Filter noise: JIKA bergerak minimal 3 meter, baru masukkan koordinat baru
+        if (dist >= 3) {
+          mapRef.current?.flyTo({
+            center: [longitude, latitude],
+            zoom: 17,
+            pitch: 45,
+            duration: 1000
+          });
+          setRecordedDistance(prevDist => prevDist + dist);
+          return [...prev, [longitude, latitude]];
+        }
+        return prev;
+      });
+    }, (error) => {
+      console.error("GPS Tracking Error:", error);
+      alert("GPS Satelit gagal mengunci posisi Anda secara akurat.");
+    }, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    });
+  };
+
+  const stopGPSTracking = () => {
+    if (watchId.current !== null) {
+      navigator.geolocation.clearWatch(watchId.current);
+      watchId.current = null;
+    }
+    setIsRecordingGPS(false);
+    setShowExportModal(true);
   };
 
   const toggleViewMode = () => {
@@ -164,20 +286,28 @@ export default function App() {
   const activePOI = poiList.find(p => p.id === activePOIId) || null;
 
   const etaTime = useMemo(() => {
-    if (!activePOI || !activePOI.time) return '';
-    const match = activePOI.time.match(/(\d+)/);
-    if (!match) return '';
-    const minutes = parseInt(match[1], 10);
+    if (!activePOI) return '';
+    const distanceNum = parseFloat(activePOI.distance) || 0;
+    let mins = 0;
+    if (travelMode === 'car') {
+      mins = Math.round(distanceNum * 2.5);
+    } else if (travelMode === 'motor') {
+      mins = Math.round(distanceNum * 1.8);
+    } else {
+      mins = Math.round(distanceNum * 12);
+    }
+    if (mins < 1) mins = 1;
     const now = new Date();
-    now.setMinutes(now.getMinutes() + minutes);
+    now.setMinutes(now.getMinutes() + mins);
     return now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-  }, [activePOI]);
+  }, [activePOI, travelMode]);
 
   const handleCancelNavigation = () => {
     setNavigationRoute(null);
   };
 
   const handleFilterChange = (newFilter: string) => {
+    if (navigationRoute) return;
     setActiveFilter(newFilter);
     setActivePOIId(null);
   };
@@ -257,7 +387,7 @@ export default function App() {
           pitch: 0,
           bearing: 0
         }}
-        mapStyle="mapbox://styles/alwancodet66/cmrfky2up002w01qr9ecv6ode"
+        mapStyle={mapStyle}
         mapboxAccessToken={MAPBOX_TOKEN}
         terrain={is3D ? { source: 'mapbox-dem', exaggeration: 1.5 } : undefined}
         maxBounds={[
@@ -267,6 +397,14 @@ export default function App() {
         minZoom={12.5}
         maxZoom={18}
         onClick={(e: any) => {
+          if (navigationRoute) {
+            // Lock map clicks during active navigation mode
+            return;
+          }
+          if (isMeasuring && e.lngLat) {
+            setMeasurePoints(prev => [...prev, { lng: e.lngLat.lng, lat: e.lngLat.lat }]);
+            return;
+          }
           setActivePOIId(null);
           if (isAdmin && e.lngLat) {
             setClickedCoords({ lng: e.lngLat.lng, lat: e.lngLat.lat });
@@ -381,14 +519,274 @@ export default function App() {
             )}
           </button>
         </div>
+
+        {/* MAP STYLE SWITCHER WIDGET */}
+        <div className="absolute top-[275px] right-[22px] z-40 pointer-events-auto flex flex-col items-end gap-2">
+          {/* Main Toggle Button */}
+          <button
+            onClick={() => setShowStyleSwitcher(!showStyleSwitcher)}
+            className={`
+              flex items-center justify-center w-[30px] h-[30px] backdrop-blur-md border rounded-lg shadow-lg cursor-pointer transition-all duration-300
+              ${showStyleSwitcher 
+                ? 'bg-amber-500 text-black border-amber-500 shadow-amber-500/20' 
+                : 'bg-black/60 text-white border-white/15 hover:bg-white/10'
+              }
+            `}
+            title="Pilih Style Peta"
+          >
+            <Layers size={14} className={showStyleSwitcher ? "text-black" : "text-amber-400"} />
+          </button>
+
+          {/* Style Options Popover (Opens to the left) */}
+          {showStyleSwitcher && (
+            <div className="absolute right-10 top-0 bg-slate-950/85 backdrop-blur-lg border border-white/10 p-2.5 rounded-xl shadow-2xl flex gap-2 animate-in fade-in slide-in-from-right-3 duration-200">
+              {[
+                {
+                  id: 'satellite',
+                  name: 'Satelit',
+                  styleUrl: 'mapbox://styles/alwancodet66/cmrfky2up002w01qr9ecv6ode',
+                  imgUrl: `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/static/107.44,-7.12,11.5,0/120x120?access_token=${MAPBOX_TOKEN}`
+                },
+                {
+                  id: 'streets',
+                  name: 'Jalan',
+                  styleUrl: 'mapbox://styles/mapbox/streets-v12',
+                  imgUrl: `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/107.44,-7.12,11.5,0/120x120?access_token=${MAPBOX_TOKEN}`
+                },
+                {
+                  id: 'terrain',
+                  name: 'Medan',
+                  styleUrl: 'mapbox://styles/mapbox/outdoors-v12',
+                  imgUrl: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/107.44,-7.12,11.5,0/120x120?access_token=${MAPBOX_TOKEN}`
+                }
+              ].map((style) => {
+                const isActive = mapStyle === style.styleUrl;
+                return (
+                  <button
+                    key={style.id}
+                    onClick={() => {
+                      setMapStyle(style.styleUrl);
+                      setShowStyleSwitcher(false);
+                    }}
+                    className={`
+                      w-14 h-14 rounded-lg flex flex-col justify-end p-1 relative overflow-hidden border transition-all duration-300 cursor-pointer snap-start shrink-0 bg-slate-900
+                      ${isActive 
+                        ? 'border-amber-500 ring-1 ring-amber-500/40 opacity-100 scale-100 font-bold' 
+                        : 'border-white/10 opacity-70 hover:opacity-100 hover:scale-105'
+                      }
+                    `}
+                  >
+                    {/* Background Preview Image */}
+                    <img 
+                      src={style.imgUrl} 
+                      alt={style.name} 
+                      className="absolute inset-0 w-full h-full object-cover z-0" 
+                    />
+                    
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent z-10" />
+
+                    <span className="text-[8px] font-black text-white tracking-wide text-center w-full block relative z-20 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                      {style.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {/* Distance Measurement Source and Layers */}
+          {isMeasuring && measurePoints.length > 0 && (
+            <Source
+              id="measure-source"
+              type="geojson"
+              data={{
+                type: 'FeatureCollection',
+                features: [
+                  // The line connecting all points
+                  {
+                    type: 'Feature',
+                    properties: {},
+                    geometry: {
+                      type: 'LineString',
+                      coordinates: measurePoints.map(p => [p.lng, p.lat])
+                    }
+                  },
+                  // The points themselves
+                  ...measurePoints.map((p, idx) => ({
+                    type: 'Feature',
+                    properties: { index: idx },
+                    geometry: {
+                      type: 'Point',
+                      coordinates: [p.lng, p.lat]
+                    }
+                  }))
+                ]
+              }}
+            >
+              {/* Line Layer */}
+              <Layer
+                id="measure-line"
+                type="line"
+                paint={{
+                  'line-color': '#f59e0b',
+                  'line-width': 3,
+                  'line-dasharray': [2, 1]
+                }}
+              />
+              {/* Points Layer */}
+              <Layer
+                id="measure-points"
+                type="circle"
+                filter={['has', 'index']}
+                paint={{
+                  'circle-radius': 6,
+                  'circle-color': '#000000',
+                  'circle-stroke-width': 2,
+                  'circle-stroke-color': '#f59e0b'
+                }}
+              />
+            </Source>
+          )}
+
+          {/* Live GPS Trail Source and Layer */}
+          {recordedCoordinates.length > 0 && (
+            <Source
+              id="live-gps-source"
+              type="geojson"
+              data={{
+                type: 'Feature',
+                properties: {},
+                geometry: {
+                  type: 'LineString',
+                  coordinates: recordedCoordinates
+                }
+              }}
+            >
+              <Layer
+                id="live-gps-layer"
+                type="line"
+                paint={{
+                  'line-color': '#22c55e',
+                  'line-width': 5,
+                  'line-dasharray': [2, 1]
+                }}
+              />
+            </Source>
+          )}
+
+          {/* Local Saved Trails Layer */}
+          {localTrails.map((trail, index) => (
+            <Source
+              key={`local-trail-${index}`}
+              id={`local-trail-source-${index}`}
+              type="geojson"
+              data={{
+                type: 'Feature',
+                properties: {},
+                geometry: {
+                  type: 'LineString',
+                  coordinates: trail
+                }
+              }}
+            >
+              <Layer
+                id={`local-trail-layer-${index}`}
+                type="line"
+                paint={{
+                  'line-color': '#10b981',
+                  'line-width': 4
+                }}
+              />
+            </Source>
+          ))}
+        </div>
+
+        {/* MAP RULER (MEASUREMENT) TOGGLE BUTTON */}
+        <div className="absolute top-[315px] right-[22px] z-40 pointer-events-auto">
+          <button
+            onClick={() => {
+              setIsMeasuring(!isMeasuring);
+              setMeasurePoints([]);
+            }}
+            className={`
+              flex items-center justify-center w-[30px] h-[30px] backdrop-blur-md border rounded-lg shadow-lg cursor-pointer transition-all duration-300
+              ${isMeasuring 
+                ? 'bg-amber-500 text-black border-amber-500 shadow-amber-500/20' 
+                : 'bg-black/60 text-white border-white/15 hover:bg-white/10'
+              }
+            `}
+            title={isMeasuring ? "Matikan Pengukur Jarak" : "Aktifkan Pengukur Jarak"}
+          >
+            <Ruler size={14} className={isMeasuring ? "text-black" : "text-amber-400"} />
+          </button>
+        </div>
+
+        {/* GPS TRAIL RECORDING TOGGLE BUTTON (ADMIN ONLY) */}
+        {isAdmin && (
+          <div className="absolute top-[355px] right-[22px] z-40 pointer-events-auto">
+            <button
+              onClick={() => {
+                if (isRecordingGPS) {
+                  stopGPSTracking();
+                } else {
+                  startGPSTracking();
+                }
+              }}
+              className={`
+                flex items-center justify-center w-[30px] h-[30px] backdrop-blur-md border rounded-lg shadow-lg cursor-pointer transition-all duration-300
+                ${isRecordingGPS 
+                  ? 'bg-red-600 text-white border-red-600 shadow-red-600/20' 
+                  : 'bg-black/60 text-white border-white/15 hover:bg-white/10'
+                }
+              `}
+              title={isRecordingGPS ? "Hentikan Rekam Jalur" : "Mulai Rekam Jalur"}
+            >
+              <Navigation size={14} className={`transform rotate-45 ${isRecordingGPS ? "text-white animate-pulse" : "text-emerald-400"}`} />
+            </button>
+          </div>
+        )}
       </Map>
 
       {/* ADMIN ACTIVE INDICATOR BANNER */}
       {isAdmin && (
-        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
-          <div className="bg-amber-500 text-black font-extrabold text-xs px-4 py-2 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.4)] flex items-center gap-2 border border-black/10 animate-bounce">
-            <span className="w-2 h-2 rounded-full bg-black animate-pulse"></span>
-            MODE ADMIN AKTIF — KLIK PETA UNTUK MENAMBAH LOKASI BARU
+        <div className="absolute top-[155px] md:top-[135px] left-1/2 -translate-x-1/2 z-30 pointer-events-none w-max max-w-[90%]">
+          <div className="bg-amber-500/75 backdrop-blur-md text-black font-extrabold text-[10px] md:text-xs px-4 py-2 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.3)] flex items-center gap-2 border border-amber-500/20 animate-bounce text-center justify-center">
+            <span className="w-2 h-2 rounded-full bg-black animate-pulse shrink-0"></span>
+            MODE ADMIN AKTIF — KLIK PETA UNTUK MENAMBAH LOKASI
+          </div>
+        </div>
+      )}
+
+      {/* FLOATING MEASUREMENT TOOLBAR */}
+      {isMeasuring && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 bg-slate-950/85 backdrop-blur-md border border-white/10 px-4 py-2 rounded-xl shadow-2xl flex items-center gap-4 text-white pointer-events-auto w-max max-w-[90%] animate-in fade-in slide-in-from-top-3 duration-200">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black text-amber-500 uppercase tracking-wider">Alat Ukur Jarak (Ruler)</span>
+            <span className="text-xs font-black mt-0.5 whitespace-nowrap">
+              {measurePoints.length < 2 ? (
+                <span className="text-gray-400 text-[10px] font-normal">Klik peta untuk mengukur...</span>
+              ) : (
+                `${(calculateDistance(measurePoints) / 1000).toFixed(2)} km (${calculateDistance(measurePoints).toLocaleString('id-ID', { maximumFractionDigits: 0 })} m)`
+              )}
+            </span>
+          </div>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => setMeasurePoints([])}
+              disabled={measurePoints.length === 0}
+              className="px-2 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-bold transition-all border border-white/5 cursor-pointer disabled:opacity-50"
+            >
+              Reset
+            </button>
+            <button
+              onClick={() => {
+                setIsMeasuring(false);
+                setMeasurePoints([]);
+              }}
+              className="px-2 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+            >
+              Tutup
+            </button>
           </div>
         </div>
       )}
@@ -412,14 +810,6 @@ export default function App() {
         />
       </div>
 
-      {/* WIDGET KANAN (RUTE TERPILIH) */}
-      <MetricsWidget 
-        activePOI={activePOI} 
-        onStartNavigation={handleStartNavigation}
-        isNavigating={isNavigating}
-        onClose={() => setActivePOIId(null)}
-      />
-
       {/* PANEL INFORMASI KIRI / BOTTOM SHEET */}
       {!navigationRoute && (
         <InfoPanel 
@@ -429,11 +819,20 @@ export default function App() {
           isNavigating={isNavigating}
           forceMinimize={!!navigationRoute}
           isAdmin={isAdmin}
+          hasActiveRoute={!!navigationRoute}
+          onCancelNavigation={handleCancelNavigation}
           onDeletePoi={(id) => {
             setPoiList(prev => prev.filter(p => p.id !== id));
             setActivePOIId(null);
             alert("Lokasi berhasil dihapus!");
           }}
+          onEditPoi={(poi) => {
+            setPoiToEdit(poi);
+            setClickedCoords({ lng: poi.longitude, lat: poi.latitude });
+            setShowAddPoiModal(true);
+          }}
+          travelMode={travelMode}
+          onTravelModeChange={setTravelMode}
         />
       )}
 
@@ -443,7 +842,19 @@ export default function App() {
           <div className="flex flex-col">
             <span className="text-emerald-400 text-xl font-black tracking-tight flex items-center gap-1.5">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="animate-pulse"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
-              {activePOI.time}
+              {(() => {
+                const distanceNum = parseFloat(activePOI.distance) || 0;
+                let mins = 0;
+                if (travelMode === 'car') {
+                  mins = Math.round(distanceNum * 2.5);
+                } else if (travelMode === 'motor') {
+                  mins = Math.round(distanceNum * 1.8);
+                } else {
+                  mins = Math.round(distanceNum * 12);
+                }
+                if (mins < 1) mins = 1;
+                return `${mins} mnt`;
+              })()}
             </span>
             <span className="text-xs text-slate-300 font-semibold mt-0.5">
               {activePOI.distance} • Est. Tiba pukul {etaTime}
@@ -460,9 +871,137 @@ export default function App() {
         </div>
       )}
 
-      {/* MENU BAWAH & CAROUSEL (HIDDEN ON MOBILE) */}
+      {/* LIVE GPS TRAIL RECORDER STATUS CARD */}
+      {isRecordingGPS && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 bg-slate-950/85 backdrop-blur-md border border-red-500/20 px-4 py-2 rounded-xl shadow-2xl flex items-center gap-4 text-white pointer-events-auto w-max max-w-[90%] animate-in fade-in slide-in-from-top-3 duration-200">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black text-red-500 uppercase tracking-wider flex items-center gap-1.5 animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
+              Merekam Jalur GPS
+            </span>
+            <span className="text-xs font-black mt-0.5 whitespace-nowrap">
+              {recordedCoordinates.length} Titik ({recordedDistance < 1000 ? `${Math.round(recordedDistance)} m` : `${(recordedDistance / 1000).toFixed(2)} km`})
+            </span>
+          </div>
+          <div className="flex gap-1.5">
+            <button
+              onClick={stopGPSTracking}
+              className="px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded-lg text-[10px] font-bold transition-all cursor-pointer shadow-md"
+            >
+              Simpan
+            </button>
+            <button
+              onClick={() => {
+                if (confirm("Batalkan perekaman jalur? Data yang belum disimpan akan hilang.")) {
+                  if (watchId.current !== null) {
+                    navigator.geolocation.clearWatch(watchId.current);
+                    watchId.current = null;
+                  }
+                  setIsRecordingGPS(false);
+                  setRecordedCoordinates([]);
+                  setRecordedDistance(0);
+                }
+              }}
+              className="px-2 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-bold transition-all border border-white/5 cursor-pointer"
+            >
+              Batal
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* GPS TRAIL EXPORT MODAL */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-950 border border-white/10 p-6 rounded-3xl shadow-2xl max-w-md w-full flex flex-col gap-4 text-white animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-sm font-black text-emerald-500 uppercase tracking-wider">Hasil Rekaman Jalur GPS</h3>
+                <p className="text-[10px] text-slate-400 font-semibold mt-1">Jalur berhasil direkam dengan akurat.</p>
+              </div>
+              <button 
+                onClick={() => setShowExportModal(false)}
+                className="text-gray-400 hover:text-white text-xs font-bold"
+              >
+                Tutup
+              </button>
+            </div>
+            
+            <div className="bg-slate-900 border border-white/5 p-3 rounded-xl flex flex-col gap-1.5 text-xs text-slate-300">
+              <div className="flex justify-between">
+                <span>Total Titik Koordinat:</span>
+                <span className="font-bold text-white">{recordedCoordinates.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Panjang Jalur:</span>
+                <span className="font-bold text-white">{(recordedDistance / 1000).toFixed(2)} km ({Math.round(recordedDistance)} m)</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Data Koordinat (GeoJSON Format)</span>
+              <textarea
+                readOnly
+                value={JSON.stringify(recordedCoordinates)}
+                className="w-full h-24 bg-slate-900 border border-white/5 rounded-xl p-2.5 text-[8px] font-mono text-emerald-400 focus:outline-none resize-none"
+              />
+            </div>
+
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(JSON.stringify(recordedCoordinates));
+                  setCopiedExport(true);
+                  setTimeout(() => setCopiedExport(false), 2000);
+                }}
+                className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                {copiedExport ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                {copiedExport ? 'Tersalin!' : 'Salin Koordinat'}
+              </button>
+              
+              <button
+                onClick={() => {
+                  if (recordedCoordinates.length > 0) {
+                    setLocalTrails(prev => [...prev, recordedCoordinates]);
+                    setShowExportModal(false);
+                    alert("Jalur berhasil disimpan ke peta lokal!");
+                  }
+                }}
+                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Check size={12} />
+                Simpan ke Peta
+              </button>
+            </div>
+            
+            {localTrails.length > 0 && (
+              <button
+                onClick={() => {
+                  if (confirm("Hapus semua jalur lokal yang telah disimpan di browser ini?")) {
+                    setLocalTrails([]);
+                    localStorage.removeItem('localTrails');
+                  }
+                }}
+                className="w-full py-2 bg-rose-950/40 hover:bg-rose-950/60 border border-rose-900/30 text-rose-400 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-1 transition-all cursor-pointer"
+              >
+                <Trash2 size={10} />
+                Reset Semua Jalur Lokal ({localTrails.length})
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* WATERMARK KKN TEXT ONLY */}
+      <div className="fixed bottom-2 right-4 z-40 pointer-events-none text-right drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.8)]">
+        <span className="text-[9px] font-black text-amber-500 tracking-wider block">KKN SUGIHMUKTI 2026</span>
+        <span className="text-[8px] font-extrabold text-white/90 leading-tight uppercase block">UNIVERSITAS MA'SOEM</span>
+      </div>
+
+      {/* MENU BAWAH & CAROUSEL (ALWAYS SHOWN, SMALLER ON MOBILE) */}
       {!activePOI && (
-        <div className="hidden md:flex fixed bottom-6 left-0 right-0 z-30 px-4 md:px-8 pb-2 transition-all flex-col items-center pointer-events-none">
+        <div className="flex fixed bottom-2 md:bottom-3 left-0 right-0 z-30 px-4 md:px-8 pb-1 transition-all flex-col items-center pointer-events-none">
           
           {/* TOMBOL TOGGLE CAROUSEL */}
           <div className="w-full max-w-5xl flex justify-center mb-2 pointer-events-auto">
@@ -502,17 +1041,27 @@ export default function App() {
 
       {/* MODAL TAMBAH POI */}
       {showAddPoiModal && clickedCoords && (
-        <AddPoiModal 
+        <AddEditPoiModal 
           coords={clickedCoords}
+          poiToEdit={poiToEdit}
           onClose={() => {
             setShowAddPoiModal(false);
             setClickedCoords(null);
+            setPoiToEdit(null);
           }}
           onSave={(newPoi) => {
-            setPoiList(prev => [...prev, newPoi]);
+            if (poiToEdit) {
+              setPoiList(prev => prev.map(p => p.id === poiToEdit.id ? newPoi : p));
+              if (activePOIId === poiToEdit.id) {
+                setActivePOIId(null);
+                setTimeout(() => setActivePOIId(newPoi.id), 100);
+              }
+            } else {
+              setPoiList(prev => [...prev, newPoi]);
+            }
             setShowAddPoiModal(false);
             setClickedCoords(null);
-            alert("Lokasi baru berhasil ditambahkan!");
+            setPoiToEdit(null);
           }}
         />
       )}
@@ -531,6 +1080,7 @@ interface LoginModalProps {
 function AdminLoginModal({ onClose, onSuccess }: LoginModalProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -567,14 +1117,23 @@ function AdminLoginModal({ onClose, onSuccess }: LoginModalProps) {
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-gray-400 font-bold uppercase tracking-wider">Password</label>
-            <input 
-              type="password" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="bg-black/40 border border-white/15 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-amber-500 transition-colors"
-              placeholder="Masukkan password..."
-              required
-            />
+            <div className="relative">
+              <input 
+                type={showPassword ? "text" : "password"} 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-black/40 border border-white/15 rounded-xl pl-3 pr-10 py-2.5 text-sm outline-none focus:border-amber-500 transition-colors"
+                placeholder="Masukkan password..."
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           {error && <span className="text-rose-500 text-xs font-semibold">{error}</span>}
@@ -592,28 +1151,71 @@ function AdminLoginModal({ onClose, onSuccess }: LoginModalProps) {
 }
 
 // ==========================================
-// COMPONENT: ADD POI MODAL
+// COMPONENT: ADD / EDIT POI MODAL
 // ==========================================
-interface AddPoiModalProps {
+interface AddEditPoiModalProps {
   coords: { lng: number; lat: number };
+  poiToEdit?: POI | null;
   onClose: () => void;
   onSave: (poi: POI) => void;
 }
-function AddPoiModal({ coords, onClose, onSave }: AddPoiModalProps) {
-  const [title, setTitle] = useState('');
-  const [type, setType] = useState('wisata');
-  const [category, setCategory] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('Gratis');
-  const [hours, setHours] = useState('24 Jam');
-  const [contact, setContact] = useState('');
-  const [image, setImage] = useState('');
+function AddEditPoiModal({ coords, poiToEdit, onClose, onSave }: AddEditPoiModalProps) {
+  const [title, setTitle] = useState(poiToEdit ? poiToEdit.title : '');
+  const [type, setType] = useState(poiToEdit ? poiToEdit.type : 'wisata');
+  const [category, setCategory] = useState(poiToEdit ? poiToEdit.category : '');
+  const [description, setDescription] = useState(poiToEdit ? poiToEdit.description : '');
+  const [price, setPrice] = useState(poiToEdit ? poiToEdit.price : 'Gratis');
+  const [hours, setHours] = useState(poiToEdit ? poiToEdit.hours : '24 Jam');
+  const [contact, setContact] = useState(poiToEdit ? poiToEdit.contact || '' : '');
+  const [lat, setLat] = useState(poiToEdit ? poiToEdit.latitude : coords.lat);
+  const [lng, setLng] = useState(poiToEdit ? poiToEdit.longitude : coords.lng);
+  
+  // Image list state (direct from Cloudinary)
+  const [images, setImages] = useState<string[]>(poiToEdit ? poiToEdit.images || [poiToEdit.image] : []);
+  const [uploading, setUploading] = useState(false);
   
   // Package states
-  const [packages, setPackages] = useState<TouristPackage[]>([]);
+  const [packages, setPackages] = useState<TouristPackage[]>(poiToEdit ? poiToEdit.packages || [] : []);
   const [tempPkgName, setTempPkgName] = useState('');
   const [tempPkgPrice, setTempPkgPrice] = useState('');
   const [tempPkgFeatures, setTempPkgFeatures] = useState('');
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    const newUrls: string[] = [];
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'gis_kkn');
+        
+        const res = await fetch('https://api.cloudinary.com/v1_1/dkckkpear/image/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error?.message || `HTTP ${res.status}`);
+        }
+        if (data.secure_url) {
+          newUrls.push(data.secure_url);
+        }
+      }
+      setImages(prev => [...prev, ...newUrls]);
+    } catch (err: any) {
+      console.error("Error uploading to Cloudinary:", err);
+      alert(`Gagal upload: ${err.message || err}.`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImages(prev => prev.filter((_, idx) => idx !== index));
+  };
 
   const handleAddPackage = () => {
     if (!tempPkgName.trim() || !tempPkgPrice.trim()) {
@@ -645,54 +1247,69 @@ function AddPoiModal({ coords, onClose, onSave }: AddPoiModalProps) {
       return;
     }
 
-    const defaultImg = type === 'vila' 
-      ? 'https://images.unsplash.com/photo-1587061949409-02df41d5e562?w=800'
-      : 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800';
+    const defaultImg = 'https://res.cloudinary.com/dkckkpear/image/upload/v1784211246/Desain_tanpa_judul_16_jz9p4i.png';
+    const finalImages = images.length > 0 ? images : [defaultImg];
 
-    const newPoi: POI = {
-      id: `poi-${Date.now()}`,
+    const savedPoi: POI = {
+      id: poiToEdit ? poiToEdit.id : `poi-${Date.now()}`,
       type,
       title: title.trim(),
       category: category.trim(),
       icon: getIconForCategory(category),
       x: 50,
       y: 50,
-      latitude: coords.lat,
-      longitude: coords.lng,
-      distance: '1 km',
-      time: '10 min',
+      latitude: Number(lat),
+      longitude: Number(lng),
+      distance: poiToEdit ? poiToEdit.distance : '1 km',
+      time: poiToEdit ? poiToEdit.time : '10 min',
       description: description.trim(),
       price: price.trim(),
       hours: hours.trim(),
       contact: contact.trim() || undefined,
-      image: image.trim() || defaultImg,
-      video: 'https://www.youtube.com/embed/QuUpPZ0w_eY',
-      images: image.trim() ? [image.trim()] : [defaultImg],
+      image: finalImages[0],
+      video: poiToEdit ? poiToEdit.video : 'https://www.youtube.com/embed/QuUpPZ0w_eY',
+      images: finalImages,
       packages: packages.length > 0 ? packages : undefined
     };
 
-    onSave(newPoi);
+    onSave(savedPoi);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md px-4 py-6 overflow-y-auto">
-      <div className="w-full max-w-lg bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-2xl text-white my-auto max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div className="w-full max-w-lg bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-2xl text-white my-auto max-h-[90vh] overflow-y-auto custom-scrollbar animate-in zoom-in duration-200">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-black">Tambah Lokasi Baru</h2>
+          <h2 className="text-xl font-black">{poiToEdit ? 'Edit Lokasi' : 'Tambah Lokasi Baru'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white cursor-pointer">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3 bg-white/5 p-3 rounded-xl border border-white/5 text-xs text-gray-400">
-            <div>
-              <span className="font-bold block text-white mb-0.5">Latitude</span>
-              {coords.lat.toFixed(6)}
+          
+          {/* Koordinat Ter-edit */}
+          <div className="grid grid-cols-2 gap-3 bg-white/5 p-4 rounded-xl border border-white/5">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">Latitude Coords</label>
+              <input 
+                type="number" 
+                step="any"
+                value={lat} 
+                onChange={e => setLat(Number(e.target.value))}
+                className="bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-amber-500"
+                required
+              />
             </div>
-            <div>
-              <span className="font-bold block text-white mb-0.5">Longitude</span>
-              {coords.lng.toFixed(6)}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">Longitude Coords</label>
+              <input 
+                type="number" 
+                step="any"
+                value={lng} 
+                onChange={e => setLng(Number(e.target.value))}
+                className="bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-amber-500"
+                required
+              />
             </div>
           </div>
 
@@ -717,7 +1334,9 @@ function AddPoiModal({ coords, onClose, onSave }: AddPoiModalProps) {
                 className="bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm outline-none focus:border-amber-500 transition-colors text-white"
               >
                 <option value="wisata">Wisata / Alam</option>
-                <option value="vila">Vila / Homestay</option>
+                <option value="vila">Vila</option>
+                <option value="homestay">Homestay</option>
+                <option value="fasilitas">Fasilitas Umum</option>
               </select>
             </div>
             <div className="flex flex-col gap-1">
@@ -727,7 +1346,7 @@ function AddPoiModal({ coords, onClose, onSave }: AddPoiModalProps) {
                 value={category} 
                 onChange={e => setCategory(e.target.value)}
                 className="bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm outline-none focus:border-amber-500 transition-colors"
-                placeholder="e.g. Camping Ground, Air Terjun"
+                placeholder="e.g. Puskesmas, Masjid, Market, Air Terjun"
                 required 
               />
             </div>
@@ -777,17 +1396,60 @@ function AddPoiModal({ coords, onClose, onSave }: AddPoiModalProps) {
                 placeholder="e.g. 62895320695308"
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Link Gambar (Cloudinary/Unsplash)</label>
-              <input 
-                type="text" 
-                value={image} 
-                onChange={e => setImage(e.target.value)}
-                className="bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm outline-none focus:border-amber-500 transition-colors"
-                placeholder="https://..."
-              />
+            <div className="flex flex-col gap-1.5">
+              {/* DIRECT IMAGE UPLOADER */}
+              <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Upload Gambar (Bisa Banyak)</label>
+              <div className="relative">
+                <input 
+                  type="file" 
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploading}
+                  className="hidden"
+                  id="cloudinary-uploader-input"
+                />
+                <label 
+                  htmlFor="cloudinary-uploader-input"
+                  className="w-full py-2 px-3 border border-white/10 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer flex items-center justify-center gap-1.5 text-xs text-amber-500 font-bold transition-all text-center"
+                >
+                  {uploading ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></span>
+                      Mengupload...
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                      Pilih Foto Destinasi
+                    </>
+                  )}
+                </label>
+              </div>
             </div>
           </div>
+
+          {/* Uploaded Images List Thumbnail */}
+          {images.length > 0 && (
+            <div className="flex flex-col gap-1.5 bg-white/5 p-3 rounded-xl border border-white/5">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Gambar Terpilih ({images.length})</span>
+              <div className="flex gap-2 overflow-x-auto py-1 hide-scrollbar">
+                {images.map((img, idx) => (
+                  <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-white/10 shrink-0 group">
+                    <img src={img} alt="Preview" className="w-full h-full object-cover" />
+                    <button 
+                      type="button"
+                      onClick={() => handleRemoveImage(idx)}
+                      className="absolute top-0.5 right-0.5 bg-black/75 hover:bg-rose-600 rounded-full p-1 text-white border border-white/10 cursor-pointer shrink-0 transition-colors"
+                      title="Hapus gambar"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ADD PACKAGE SECTION */}
           <div className="border-t border-white/10 pt-4 mt-2">
@@ -822,21 +1484,21 @@ function AddPoiModal({ coords, onClose, onSave }: AddPoiModalProps) {
                   value={tempPkgName}
                   onChange={e => setTempPkgName(e.target.value)}
                   placeholder="Nama Paket (e.g. Paket Glamping)"
-                  className="bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-amber-500"
+                  className="bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-amber-500 text-white"
                 />
                 <input 
                   type="text" 
                   value={tempPkgPrice}
                   onChange={e => setTempPkgPrice(e.target.value)}
                   placeholder="Harga (e.g. Rp 500.000 / malam)"
-                  className="bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-amber-500"
+                  className="bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-amber-500 text-white"
                 />
               </div>
               <textarea 
                 value={tempPkgFeatures}
                 onChange={e => setTempPkgFeatures(e.target.value)}
                 placeholder="Fasilitas paket (satu baris per fasilitas)..."
-                className="bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-amber-500 h-16 resize-none"
+                className="bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-amber-500 text-white h-16 resize-none"
               />
               <button
                 type="button"

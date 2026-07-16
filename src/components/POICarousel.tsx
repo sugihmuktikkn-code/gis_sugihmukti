@@ -32,7 +32,7 @@ export function POICarousel({ pois, activeId, onSelect }: POICarouselProps) {
       onMouseLeave={() => setIsHovered(false)}
       onTouchStart={() => setIsHovered(true)}
       onTouchEnd={() => setIsHovered(false)}
-      className="flex gap-4 overflow-x-auto hide-scrollbar pb-6 pt-4 px-4 snap-x snap-mandatory scroll-smooth"
+      className="flex gap-4 overflow-x-auto hide-scrollbar pb-2 pt-2 px-4 snap-x snap-mandatory scroll-smooth"
     >
       {pois.map((poi) => {
         const isActive = poi.id === activeId;
@@ -42,7 +42,7 @@ export function POICarousel({ pois, activeId, onSelect }: POICarouselProps) {
           <div
             key={poi.id}
             onClick={() => onSelect(poi.id)}
-            className={`min-w-[220px] md:min-w-[280px] h-[120px] snap-start flex flex-col justify-end p-4 relative overflow-hidden cursor-pointer transition-all duration-300 rounded-3xl ${
+            className={`min-w-[170px] md:min-w-[280px] h-[90px] md:h-[120px] snap-start flex flex-col justify-end p-3 md:p-4 relative overflow-hidden cursor-pointer transition-all duration-300 rounded-2xl md:rounded-3xl ${
               isActive ? 'opacity-100 scale-100 ring-2 ring-amber-500 ring-offset-2 ring-offset-black' : 'opacity-70 hover:opacity-100 scale-95 hover:scale-100'
             }`}
             style={{
@@ -62,22 +62,22 @@ export function POICarousel({ pois, activeId, onSelect }: POICarouselProps) {
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-10" />
 
             {/* Content */}
-            <div className="flex items-center gap-3 relative z-20 w-full">
+            <div className="flex items-center gap-2 md:gap-3 relative z-20 w-full">
               <div 
-                className="w-10 h-10 flex items-center justify-center rounded-xl transition-colors flex-shrink-0 backdrop-blur-md"
+                className="w-7 h-7 md:w-10 md:h-10 flex items-center justify-center rounded-lg md:rounded-xl transition-colors flex-shrink-0 backdrop-blur-md"
                 style={{
                   backgroundColor: isActive ? 'var(--color-app-accent)' : 'rgba(0, 0, 0, 0.5)',
                   color: isActive ? '#000' : '#fff',
                   border: '1px solid rgba(255, 255, 255, 0.2)'
                 }}
               >
-                <Icon size={20} strokeWidth={2} />
+                <Icon className="w-3.5 h-3.5 md:w-5 md:h-5" strokeWidth={2} />
               </div>
               <div className="flex flex-col min-w-0">
-                <p className="text-[9px] uppercase tracking-widest font-bold text-amber-500 mb-0.5">
+                <p className="text-[7px] md:text-[9px] uppercase tracking-widest font-bold text-amber-500 mb-0.5">
                   {poi.category}
                 </p>
-                <h3 className="text-sm font-extrabold leading-tight text-white truncate">
+                <h3 className="text-xs md:text-sm font-extrabold leading-tight text-white truncate">
                   {poi.title}
                 </h3>
               </div>
