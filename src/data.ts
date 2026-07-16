@@ -40,8 +40,17 @@ export const poiData: POI[] = [
     description: 'Rasakan pengalaman berkemah di alam terbuka dengan fasilitas lengkap dan pemandangan hutan pinus asri. Tersedia juga aktivitas Bird Watching.',
     price: 'Rp 150.000 / tenda',
     hours: '24 Jam',
-    image: 'https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=500&q=80',
-    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY'
+    image: 'https://res.cloudinary.com/dkckkpear/image/upload/v1784164442/IMG_20260707_083450_jjgafw.jpg',
+    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY',
+    images: [
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784164442/IMG_20260707_083450_jjgafw.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784164446/IMG_20260707_083531_hgod3i.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784164451/IMG_20260707_083423_mqeuko.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784164454/IMG_20260707_094432_qnxp3d.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784164461/IMG_20260707_083643_zsfzud.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784164462/IMG_20260707_083632_r3ld4x.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784164465/IMG_20260707_083505_vo8klk.jpg'
+    ]
   },
   {
     id: 'curug_leumah',
