@@ -105,8 +105,14 @@ export const poiData: POI[] = [
     description: 'Gunung eksotis dengan vegetasi khas dataran tinggi. Merupakan lokasi dari Kawah Putih yang sangat legendaris.',
     price: 'Rp 28.000',
     hours: '07:00 - 17:00 WIB',
-    image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=500&q=80',
-    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY'
+    image: 'https://res.cloudinary.com/dkckkpear/image/upload/v1784161361/Trip_Gunung_Patuha_Jabar_Kawah_Putih_psz2hd.jpg',
+    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY',
+    images: [
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784161361/Trip_Gunung_Patuha_Jabar_Kawah_Putih_psz2hd.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784161361/download_18_egpdzo.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784161438/puncak_patuha_uudndr.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784161361/with_love_from_the_tropics_r75nso.jpg'
+    ]
   },
   {
     id: 'sunan-rama',
