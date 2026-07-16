@@ -165,8 +165,14 @@ export const poiData: POI[] = [
     description: 'Pusat kerajinan pandai besi tradisional. Melihat langsung keahlian warga dalam membuat alat-alat pertanian secara turun-temurun.',
     price: 'Gratis',
     hours: '08:00 - 16:00 WIB',
-    image: 'https://images.unsplash.com/photo-1535015093122-eb1287958ce7?w=500&q=80',
-    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY'
+    image: 'https://res.cloudinary.com/dkckkpear/image/upload/v1784164744/IMG_20260713_082333_tmza9j.jpg',
+    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY',
+    images: [
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784164744/IMG_20260713_082333_tmza9j.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784164747/IMG_20260713_075952_fbzoj4.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784164822/IMG_5116_ao6r7e.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784164889/IMG_5106_1_fwbecy.jpg'
+    ]
   },
   {
     id: 'kambing-etawa',
