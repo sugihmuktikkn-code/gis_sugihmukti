@@ -21,7 +21,7 @@ export const poiData: POI[] = [
     description: 'Pusat informasi dan layanan administrasi Desa Wisata Sugihmukti. Titik awal yang sangat tepat untuk memulai penjelajahan Anda.',
     price: 'Gratis',
     hours: '08:00 - 15:00 WIB',
-    image: 'https://images.unsplash.com/photo-1577563908411-5077b6dc7624?w=500&q=80',
+    image: 'https://res.cloudinary.com/dkckkpear/image/upload/v1784168283/images_dp07mp.jpg',
     video: 'https://www.youtube.com/embed/QuUpPZ0w_eY'
   },
   {
