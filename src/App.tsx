@@ -65,6 +65,7 @@ export default function App() {
     const saved = localStorage.getItem('localTrails');
     return saved ? JSON.parse(saved) : [];
   });
+  const [showAdminBanner, setShowAdminBanner] = useState<boolean>(true);
 
   // Haversine distance calculator
   const calculateDistance = (coords: { lng: number; lat: number }[]) => {
@@ -98,6 +99,9 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('isAdmin', isAdmin.toString());
+    if (isAdmin) {
+      setShowAdminBanner(true);
+    }
   }, [isAdmin]);
 
   useEffect(() => {
@@ -221,7 +225,12 @@ export default function App() {
     };
 
     watchId.current = navigator.geolocation.watchPosition((position) => {
-      const { longitude, latitude } = position.coords;
+      const { longitude, latitude, accuracy } = position.coords;
+      
+      // Filter out points with poor accuracy (e.g., error margin > 12 meters) to prevent jumping
+      if (accuracy && accuracy > 12) {
+        return;
+      }
       
       setRecordedCoordinates(prev => {
         if (prev.length === 0) {
@@ -237,8 +246,8 @@ export default function App() {
         const lastPoint = prev[prev.length - 1];
         const dist = getDistanceFromPoints(lastPoint[0], lastPoint[1], longitude, latitude);
         
-        // Filter noise: JIKA bergerak minimal 3 meter, baru masukkan koordinat baru
-        if (dist >= 3) {
+        // Filter noise: Hanya rekam jika bergerak minimal 10 meter (menghindari GPS drift saat diam)
+        if (dist >= 10) {
           mapRef.current?.flyTo({
             center: [longitude, latitude],
             zoom: 17,
@@ -284,6 +293,46 @@ export default function App() {
   }, [activeFilter, poiList]);
 
   const activePOI = poiList.find(p => p.id === activePOIId) || null;
+
+  // Calculate nearest villa and homestay for active POI if it is a tourist spot
+  const nearestAccommodations = useMemo(() => {
+    if (!activePOI || activePOI.type !== 'wisata') return null;
+    
+    const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+      const R = 6371e3; // meters
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    };
+
+    let nearestVilla: any = null;
+    let minVillaDist = Infinity;
+    let nearestHomestay: any = null;
+    let minHomestayDist = Infinity;
+
+    poiList.forEach((item: any) => {
+      if (item.id === activePOI.id) return;
+      const dist = getDistance(activePOI.latitude, activePOI.longitude, item.latitude, item.longitude);
+      
+      if (item.type === 'vila') {
+        if (dist < minVillaDist) {
+          minVillaDist = dist;
+          nearestVilla = item;
+        }
+      } else if (item.type === 'homestay') {
+        if (dist < minHomestayDist) {
+          minHomestayDist = dist;
+          nearestHomestay = item;
+        }
+      }
+    });
+
+    return { nearestVilla, nearestHomestay };
+  }, [activePOI, poiList]);
 
   const etaTime = useMemo(() => {
     if (!activePOI) return '';
@@ -469,26 +518,50 @@ export default function App() {
         )}
 
         {/* MARKER POI */}
-        {filteredPOIs.map((poi, index) => (
-          <Marker 
-            key={poi.id}
-            longitude={poi.longitude} 
-            latitude={poi.latitude}
-            anchor="bottom"
-            onClick={(e: any) => {
-              e.originalEvent.stopPropagation();
-              setActivePOIId(poi.id);
-            }}
-            style={{ zIndex: activePOIId === poi.id ? 50 : 10 }}
-          >
-            <MapPin 
-              poi={poi}
-              isActive={activePOIId === poi.id}
-              onClick={() => {}}
-              index={index}
-            />
-          </Marker>
-        ))}
+        {(() => {
+          const extraPois: any[] = [];
+          if (nearestAccommodations) {
+            if (nearestAccommodations.nearestVilla) {
+              const alreadyExists = filteredPOIs.some(p => p.id === nearestAccommodations.nearestVilla.id);
+              if (!alreadyExists) {
+                extraPois.push({ ...nearestAccommodations.nearestVilla, pinColor: 'sky' });
+              }
+            }
+            if (nearestAccommodations.nearestHomestay) {
+              const alreadyExists = filteredPOIs.some(p => p.id === nearestAccommodations.nearestHomestay.id);
+              if (!alreadyExists) {
+                extraPois.push({ ...nearestAccommodations.nearestHomestay, pinColor: 'emerald' });
+              }
+            }
+          }
+          
+          const allMarkersToRender = [
+            ...filteredPOIs.map(p => ({ ...p, pinColor: 'white' as const })),
+            ...extraPois
+          ];
+
+          return allMarkersToRender.map((poi, index) => (
+            <Marker 
+              key={poi.id}
+              longitude={poi.longitude} 
+              latitude={poi.latitude}
+              anchor="bottom"
+              onClick={(e: any) => {
+                e.originalEvent.stopPropagation();
+                setActivePOIId(poi.id);
+              }}
+              style={{ zIndex: activePOIId === poi.id ? 50 : 10 }}
+            >
+              <MapPin 
+                poi={poi}
+                isActive={activePOIId === poi.id}
+                onClick={() => {}}
+                index={index}
+                pinColor={poi.pinColor}
+              />
+            </Marker>
+          ));
+        })()}
 
         {/* GEOLOCATE CONTROL & NAVIGATION */}
         <GeolocateControl 
@@ -748,11 +821,21 @@ export default function App() {
       </Map>
 
       {/* ADMIN ACTIVE INDICATOR BANNER */}
-      {isAdmin && (
-        <div className="absolute top-[155px] md:top-[135px] left-1/2 -translate-x-1/2 z-30 pointer-events-none w-max max-w-[90%]">
-          <div className="bg-amber-500/75 backdrop-blur-md text-black font-extrabold text-[10px] md:text-xs px-4 py-2 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.3)] flex items-center gap-2 border border-amber-500/20 animate-bounce text-center justify-center">
-            <span className="w-2 h-2 rounded-full bg-black animate-pulse shrink-0"></span>
+      {isAdmin && showAdminBanner && (
+        <div className="absolute top-[135px] md:top-[130px] left-1/2 -translate-x-1/2 z-30 pointer-events-auto w-max max-w-[90%] animate-in fade-in duration-300">
+          <div className="bg-slate-950/90 backdrop-blur-md text-amber-400 font-bold text-[9px] md:text-[10px] px-3.5 py-1.5 rounded-xl shadow-xl flex items-center gap-2 border border-amber-500/20 tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
             MODE ADMIN AKTIF — KLIK PETA UNTUK MENAMBAH LOKASI
+            <button
+              onClick={() => setShowAdminBanner(false)}
+              className="ml-1.5 hover:text-white transition-colors cursor-pointer p-0.5 flex items-center justify-center shrink-0"
+              title="Tutup Petunjuk"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
         </div>
       )}
@@ -791,16 +874,18 @@ export default function App() {
         </div>
       )}
 
-      <TopNav 
-        pois={poiList} 
-        onSelectPOI={setActivePOIId} 
-        isAdmin={isAdmin}
-        onOpenLoginModal={() => setShowLoginModal(true)}
-        onLogout={() => {
-          setIsAdmin(false);
-          alert("Admin berhasil logout!");
-        }}
-      />
+      {!isMeasuring && !isRecordingGPS && (
+        <TopNav 
+          pois={poiList} 
+          onSelectPOI={setActivePOIId} 
+          isAdmin={isAdmin}
+          onOpenLoginModal={() => setShowLoginModal(true)}
+          onLogout={() => {
+            setIsAdmin(false);
+            alert("Admin berhasil logout!");
+          }}
+        />
+      )}
 
       {/* FILTER PILLS - MOVED TO TOP (BELOW TOPNAV) */}
       <div className="absolute top-20 left-0 right-0 z-30 pointer-events-none">
@@ -821,6 +906,8 @@ export default function App() {
           isAdmin={isAdmin}
           hasActiveRoute={!!navigationRoute}
           onCancelNavigation={handleCancelNavigation}
+          pois={poiList}
+          onSelectPOI={setActivePOIId}
           onDeletePoi={(id) => {
             setPoiList(prev => prev.filter(p => p.id !== id));
             setActivePOIId(null);
@@ -1001,7 +1088,7 @@ export default function App() {
 
       {/* MENU BAWAH & CAROUSEL (ALWAYS SHOWN, SMALLER ON MOBILE) */}
       {!activePOI && (
-        <div className="flex fixed bottom-2 md:bottom-3 left-0 right-0 z-30 px-4 md:px-8 pb-1 transition-all flex-col items-center pointer-events-none">
+        <div className="flex fixed bottom-7 md:bottom-5 left-0 right-0 z-30 px-4 md:px-8 pb-1 transition-all flex-col items-center pointer-events-none">
           
           {/* TOMBOL TOGGLE CAROUSEL */}
           <div className="w-full max-w-5xl flex justify-center mb-2 pointer-events-auto">

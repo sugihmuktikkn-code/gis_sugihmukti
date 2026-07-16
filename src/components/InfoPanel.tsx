@@ -14,6 +14,8 @@ interface InfoPanelProps {
   onTravelModeChange: (mode: 'car' | 'motor' | 'walk') => void;
   hasActiveRoute?: boolean;
   onCancelNavigation?: () => void;
+  pois?: any[];
+  onSelectPOI?: (id: string) => void;
 }
 
 export const InfoPanel: React.FC<InfoPanelProps> = ({ 
@@ -28,7 +30,9 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
   travelMode, 
   onTravelModeChange,
   hasActiveRoute,
-  onCancelNavigation
+  onCancelNavigation,
+  pois,
+  onSelectPOI
 }) => {
   const [displayPoi, setDisplayPoi] = useState<any | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -38,6 +42,46 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const bannerScrollRef = useRef<HTMLDivElement>(null);
+
+  // Find nearest homestay and villa if category/type is wisata
+  const nearestAccommodations = React.useMemo(() => {
+    if (!displayPoi || displayPoi.type !== 'wisata' || !pois || pois.length === 0) return null;
+
+    const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+      const R = 6371e3; // meters
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    };
+
+    let nearestVilla: any = null;
+    let minVillaDist = Infinity;
+    let nearestHomestay: any = null;
+    let minHomestayDist = Infinity;
+
+    pois.forEach((item: any) => {
+      if (item.id === displayPoi.id) return;
+      const dist = getDistance(displayPoi.latitude, displayPoi.longitude, item.latitude, item.longitude);
+      
+      if (item.type === 'vila') {
+        if (dist < minVillaDist) {
+          minVillaDist = dist;
+          nearestVilla = { ...item, calculatedDistance: dist };
+        }
+      } else if (item.type === 'homestay') {
+        if (dist < minHomestayDist) {
+          minHomestayDist = dist;
+          nearestHomestay = { ...item, calculatedDistance: dist };
+        }
+      }
+    });
+
+    return { nearestVilla, nearestHomestay };
+  }, [displayPoi, pois]);
 
   useEffect(() => {
     if (poi) {
@@ -319,6 +363,47 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
                     )}
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* NEAREST ACCOMMODATION (HOMESTAY / VILLA) FOR TOURIST SPOTS */}
+          {nearestAccommodations && (nearestAccommodations.nearestVilla || nearestAccommodations.nearestHomestay) && (
+            <div className="mb-4 bg-slate-900/60 border border-white/5 rounded-2xl p-4 flex flex-col gap-3">
+              <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-wider">Akomodasi Terdekat</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {nearestAccommodations.nearestVilla && (
+                  <button
+                    onClick={() => onSelectPOI && onSelectPOI(nearestAccommodations.nearestVilla.id)}
+                    className="flex flex-col text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-amber-500/30 transition-all cursor-pointer group"
+                  >
+                    <span className="text-[10px] font-black text-white group-hover:text-amber-400 transition-colors truncate w-full block">
+                      {nearestAccommodations.nearestVilla.title}
+                    </span>
+                    <span className="text-[9px] font-bold text-sky-400 mt-1 block">Vila Terdekat</span>
+                    <span className="text-[9px] text-gray-400 font-semibold mt-0.5 block">
+                      Jarak: {nearestAccommodations.nearestVilla.calculatedDistance < 1000 
+                        ? `${Math.round(nearestAccommodations.nearestVilla.calculatedDistance)} m` 
+                        : `${(nearestAccommodations.nearestVilla.calculatedDistance / 1000).toFixed(1)} km`}
+                    </span>
+                  </button>
+                )}
+                {nearestAccommodations.nearestHomestay && (
+                  <button
+                    onClick={() => onSelectPOI && onSelectPOI(nearestAccommodations.nearestHomestay.id)}
+                    className="flex flex-col text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-amber-500/30 transition-all cursor-pointer group"
+                  >
+                    <span className="text-[10px] font-black text-white group-hover:text-amber-400 transition-colors truncate w-full block">
+                      {nearestAccommodations.nearestHomestay.title}
+                    </span>
+                    <span className="text-[9px] font-bold text-emerald-400 mt-1 block">Homestay Terdekat</span>
+                    <span className="text-[9px] text-gray-400 font-semibold mt-0.5 block">
+                      Jarak: {nearestAccommodations.nearestHomestay.calculatedDistance < 1000 
+                        ? `${Math.round(nearestAccommodations.nearestHomestay.calculatedDistance)} m` 
+                        : `${(nearestAccommodations.nearestHomestay.calculatedDistance / 1000).toFixed(1)} km`}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
           )}
