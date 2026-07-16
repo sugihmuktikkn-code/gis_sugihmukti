@@ -19,4 +19,11 @@ export interface POI {
   image: string;
   video: string;
   images?: string[];
+  packages?: TouristPackage[];
+}
+
+export interface TouristPackage {
+  name: string;
+  price: string;
+  features: string[];
 }

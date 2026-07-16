@@ -50,6 +50,18 @@ export const poiData: POI[] = [
       'https://res.cloudinary.com/dkckkpear/image/upload/v1784164461/IMG_20260707_083643_zsfzud.jpg',
       'https://res.cloudinary.com/dkckkpear/image/upload/v1784164462/IMG_20260707_083632_r3ld4x.jpg',
       'https://res.cloudinary.com/dkckkpear/image/upload/v1784164465/IMG_20260707_083505_vo8klk.jpg'
+    ],
+    packages: [
+      {
+        name: 'Paket Camping Mandiri',
+        price: 'Rp 150.000 / malam',
+        features: ['Sewa Lahan Camp', 'Akses Listrik & Toilet', 'Free Kayu Bakar']
+      },
+      {
+        name: 'Paket Camp & Bird Watching',
+        price: 'Rp 250.000 / malam',
+        features: ['Tenda Dome Lengkap', 'Matras & Sleeping Bag', 'Pemandu Bird Watching', 'Kopi Lokal Sugihmukti']
+      }
     ]
   },
   {
@@ -244,7 +256,19 @@ export const poiData: POI[] = [
     price: 'Mulai dari Rp 500.000',
     hours: 'Check-in 14:00 WIB',
     image: 'https://images.unsplash.com/photo-1587061949409-02df41d5e562?auto=format&fit=crop&q=80&w=800',
-    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY'
+    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY',
+    packages: [
+      {
+        name: 'Paket Akhir Pekan (Weekend)',
+        price: 'Rp 750.000 / malam',
+        features: ['Kamar Superior dengan View', 'Sarapan untuk 2 Orang', 'Tur Kebun Kopi & Roasting Class']
+      },
+      {
+        name: 'Paket Honeymoon Romantis',
+        price: 'Rp 1.200.000 / malam',
+        features: ['Kamar Suite Mewah', 'Dekorasi Kamar Bunga', 'Makan Malam Romantis', 'Private Coffee Brewing Session']
+      }
+    ]
   },
   {
     id: 'glamping-legok-kondang',
@@ -304,3 +328,15 @@ export const poiData: POI[] = [
     video: 'https://www.youtube.com/embed/QuUpPZ0w_eY'
   }
 ];
+
+export function getIconForCategory(category: string) {
+  const cat = category.toLowerCase();
+  if (cat.includes('pusat pemerintahan') || cat.includes('vila') || cat.includes('homestay')) return Home;
+  if (cat.includes('camping') || cat.includes('camp')) return Tent;
+  if (cat.includes('air terjun') || cat.includes('pemandian')) return Droplets;
+  if (cat.includes('alam') || cat.includes('pegunungan')) return TreePine;
+  if (cat.includes('budaya') || cat.includes('pandai besi')) return Hammer;
+  if (cat.includes('edukasi') || cat.includes('tani') || cat.includes('kebun') || cat.includes('peternakan')) return Tractor;
+  if (cat.includes('kopi') || cat.includes('kuliner')) return Coffee;
+  return Target; // default fallback
+}

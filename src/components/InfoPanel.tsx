@@ -6,9 +6,11 @@ interface InfoPanelProps {
   onStartNavigation?: () => void;
   isNavigating?: boolean;
   forceMinimize?: boolean;
+  isAdmin?: boolean;
+  onDeletePoi?: (id: string) => void;
 }
 
-export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose, onStartNavigation, isNavigating, forceMinimize }) => {
+export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose, onStartNavigation, isNavigating, forceMinimize, isAdmin, onDeletePoi }) => {
   const [displayPoi, setDisplayPoi] = useState<any | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -204,6 +206,33 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose, onStartNavig
             {deskripsi}
           </p>
 
+          {/* Detail Paket Section */}
+          {displayPoi.packages && displayPoi.packages.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-bold text-amber-500 uppercase tracking-wider mb-3">Detail Paket Wisata / Vila</h3>
+              <div className="flex flex-col gap-3">
+                {displayPoi.packages.map((pkg: any, idx: number) => (
+                  <div key={idx} className="bg-white/5 border border-white/10 rounded-xl p-3.5 flex flex-col">
+                    <div className="flex justify-between items-start mb-2 gap-2">
+                      <span className="font-bold text-white text-sm md:text-base leading-snug">{pkg.name}</span>
+                      <span className="text-amber-400 text-xs md:text-sm font-black whitespace-nowrap">{pkg.price}</span>
+                    </div>
+                    {pkg.features && pkg.features.length > 0 && (
+                      <ul className="text-xs text-gray-400 space-y-1 mt-1 pl-1 list-none">
+                        {pkg.features.map((feat: string, fIdx: number) => (
+                          <li key={fIdx} className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
+                            {feat}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col gap-2.5">
             {/* Start Navigation CTA (Google Maps style) */}
             {onStartNavigation && displayPoi.id !== 'kantor-desa' && (
@@ -228,6 +257,21 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ poi, onClose, onStartNavig
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
                 Cek Ketersediaan Kamar
               </a>
+            )}
+
+            {/* Delete Location CTA - Admin Only */}
+            {isAdmin && onDeletePoi && (
+              <button 
+                onClick={() => {
+                  if (confirm(`Apakah Anda yakin ingin menghapus lokasi "${namaTempat}"?`)) {
+                    onDeletePoi(displayPoi.id);
+                  }
+                }}
+                className="w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 border border-rose-600/40"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                Hapus Lokasi
+              </button>
             )}
           </div>
         </div>

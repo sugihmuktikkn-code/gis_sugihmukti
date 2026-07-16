@@ -1,13 +1,16 @@
-import { Search, X } from 'lucide-react';
+import { Search, X, Lock, Unlock } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { POI } from '../types';
 
 interface TopNavProps {
   pois: POI[];
   onSelectPOI: (id: string) => void;
+  isAdmin: boolean;
+  onOpenLoginModal: () => void;
+  onLogout: () => void;
 }
 
-export function TopNav({ pois, onSelectPOI }: TopNavProps) {
+export function TopNav({ pois, onSelectPOI, isAdmin, onOpenLoginModal, onLogout }: TopNavProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -94,6 +97,18 @@ export function TopNav({ pois, onSelectPOI }: TopNavProps) {
             <Search size={16} />
           </button>
         )}
+
+        <button 
+          onClick={isAdmin ? onLogout : onOpenLoginModal}
+          className={`w-10 h-10 rounded-full border border-white/10 flex items-center justify-center transition-all shrink-0 cursor-pointer backdrop-blur-md ${
+            isAdmin 
+              ? 'bg-amber-500/20 border-amber-500/50 text-amber-500 hover:bg-amber-500/30' 
+              : 'bg-black/40 text-gray-400 hover:text-white hover:bg-white/5'
+          }`}
+          title={isAdmin ? "Logout Admin" : "Login Admin"}
+        >
+          {isAdmin ? <Unlock size={16} /> : <Lock size={16} />}
+        </button>
       </div>
     </nav>
   );
