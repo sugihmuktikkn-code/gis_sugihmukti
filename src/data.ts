@@ -46,7 +46,7 @@ export const poiData: POI[] = [
   {
     id: 'curug_leumah',
     type: 'wisata',
-    title: 'Curug Leumah Neuneut',
+    title: 'Curug Leumah Neundeut',
     category: 'Air Terjun',
     icon: Droplets,
     x: 25,
@@ -59,8 +59,15 @@ export const poiData: POI[] = [
     description: 'Wisata air terjun alami tersembunyi yang menyuguhkan kesegaran air pegunungan dan panorama asri khas Pasirjambu.',
     price: 'Rp 10.000',
     hours: '07:00 - 16:00 WIB',
-    image: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=500&q=80',
-    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY'
+    image: 'https://res.cloudinary.com/dkckkpear/image/upload/v1784164186/IMG_4282_outy8t.jpg',
+    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY',
+    images: [
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784164186/IMG_4282_outy8t.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784164178/IMG_4371_q8ona7.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784164178/IMG_20260707_074751_fdp0va.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784164178/IMG_4298_mwqn0i.jpg',
+      'https://res.cloudinary.com/dkckkpear/image/upload/v1784164273/IMG_4374_uz2zwv.jpg'
+    ]
   },
   {
     id: 'sunan-ibu',
@@ -130,7 +137,7 @@ export const poiData: POI[] = [
     description: 'Kawasan penyangga konservasi dengan udara yang sangat segar. Terdapat situs sejarah petilasan di sekitar areanya.',
     price: 'Rp 15.000',
     hours: '08:00 - 16:00 WIB',
-    image: 'https://images.unsplash.com/photo-1444464666168-49b626d49cb4?w=500&q=80',
+    image: 'https://res.cloudinary.com/dkckkpear/image/upload/v1784163814/sunan_rama_wmlqy9.jpg',
     video: 'https://www.youtube.com/embed/QuUpPZ0w_eY'
   },
   {
