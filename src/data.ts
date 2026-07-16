@@ -197,44 +197,6 @@ export const poiData: POI[] = [
     ]
   },
 
-  {
-    id: 'ranca-upas',
-    type: 'wisata',
-    title: 'Wana Wisata Ranca Upas',
-    category: 'Alam',
-    icon: Tent,
-    x: 50,
-    y: 30,
-    latitude: -7.137350,
-    longitude: 107.392250,
-    contact: '6281234567893',
-    distance: '6.5 km',
-    time: '35 min',
-    description: 'Bumi perkemahan legendaris, spot interaksi penangkaran rusa, dan pemandian air panas alami.',
-    price: 'Rp 25.000',
-    hours: '24 Jam',
-    image: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&q=80&w=800',
-    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY'
-  },
-  {
-    id: 'walini',
-    type: 'wisata',
-    title: 'Pemandian Air Panas Walini',
-    category: 'Pemandian',
-    icon: Droplets,
-    x: 45,
-    y: 40,
-    latitude: -7.143520,
-    longitude: 107.393510,
-    contact: '6281234567894',
-    distance: '7.0 km',
-    time: '40 min',
-    description: 'Kolam pemandian air panas alami dari pegunungan yang dikelilingi oleh sejuknya perkebunan teh.',
-    price: 'Rp 40.000',
-    hours: '07:00 - 17:00 WIB',
-    image: 'https://images.unsplash.com/photo-1511497584788-87676104235f?auto=format&fit=crop&q=80&w=800',
-    video: 'https://www.youtube.com/embed/QuUpPZ0w_eY'
-  },
   // ==========================================
   // KATEGORI: VILA (type: 'vila')
   // ==========================================
