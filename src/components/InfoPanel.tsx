@@ -431,6 +431,19 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({
               )
             )}
 
+            {/* Street View Button */}
+            {displayPoi && displayPoi.latitude && displayPoi.longitude && (
+              <a 
+                href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${displayPoi.latitude},${displayPoi.longitude}`}
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg bg-slate-800 hover:bg-slate-700 text-white border border-white/10 text-xs md:text-sm"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-sky-400"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M2 12h2"/><path d="M20 12h2"/></svg>
+                Lihat Google Street View (360°)
+              </a>
+            )}
+
             {/* WA Chat CTA - Package booking for Kantor Desa */}
             {displayPoi.id === 'kantor-desa' && (
               <a 
