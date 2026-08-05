@@ -445,6 +445,8 @@ export default function App() {
         ]}
         minZoom={12.5}
         maxZoom={18}
+        reuseMaps
+        antialias={false}
         onClick={(e: any) => {
           if (navigationRoute) {
             // Lock map clicks during active navigation mode
@@ -912,6 +914,9 @@ export default function App() {
             setPoiList(prev => prev.filter(p => p.id !== id));
             setActivePOIId(null);
             alert("Lokasi berhasil dihapus!");
+            setTimeout(() => {
+              window.location.reload();
+            }, 300);
           }}
           onEditPoi={(poi) => {
             setPoiToEdit(poi);
@@ -1149,6 +1154,11 @@ export default function App() {
             setShowAddPoiModal(false);
             setClickedCoords(null);
             setPoiToEdit(null);
+            
+            // Reload the page automatically so that new markers and lists are rendered instantly
+            setTimeout(() => {
+              window.location.reload();
+            }, 300);
           }}
         />
       )}
@@ -1271,10 +1281,8 @@ function AddEditPoiModal({ coords, poiToEdit, onClose, onSave }: AddEditPoiModal
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setUploading(true);
-    const newUrls: string[] = [];
     try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+      const uploadPromises = Array.from(files).map(async (file) => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('upload_preset', 'gis_kkn');
@@ -1287,11 +1295,11 @@ function AddEditPoiModal({ coords, poiToEdit, onClose, onSave }: AddEditPoiModal
         if (!res.ok) {
           throw new Error(data.error?.message || `HTTP ${res.status}`);
         }
-        if (data.secure_url) {
-          newUrls.push(data.secure_url);
-        }
-      }
-      setImages(prev => [...prev, ...newUrls]);
+        return data.secure_url;
+      });
+      
+      const newUrls = await Promise.all(uploadPromises);
+      setImages(prev => [...prev, ...newUrls.filter(Boolean)]);
     } catch (err: any) {
       console.error("Error uploading to Cloudinary:", err);
       alert(`Gagal upload: ${err.message || err}.`);
