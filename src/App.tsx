@@ -46,7 +46,7 @@ export default function App() {
   const [activeFilter, setActiveFilter] = useState<string>('wisata');
   const [showCarousel, setShowCarousel] = useState<boolean>(true);
   const [is3D, setIs3D] = useState<boolean>(false);
-  const [mapStyle, setMapStyle] = useState<string>('mapbox://styles/alwancodet66/cmrfky2up002w01qr9ecv6ode');
+  const [mapStyle, setMapStyle] = useState<string>('mapbox://styles/mapbox/streets-v12');
   const [showStyleSwitcher, setShowStyleSwitcher] = useState<boolean>(false);
   const [isMeasuring, setIsMeasuring] = useState<boolean>(false);
   const [measurePoints, setMeasurePoints] = useState<{ lng: number; lat: number }[]>([]);
