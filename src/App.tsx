@@ -440,10 +440,10 @@ export default function App() {
         mapboxAccessToken={MAPBOX_TOKEN}
         terrain={is3D ? { source: 'mapbox-dem', exaggeration: 1.5 } : undefined}
         maxBounds={[
-          [107.1900, -7.2500],
-          [107.6500, -7.0300]
+          [107.3800, -7.1850], // Barat Daya (South-West)
+          [107.4650, -7.1000]  // Timur Laut (North-East)
         ]}
-        minZoom={12.5}
+        minZoom={13.2}
         maxZoom={18}
         reuseMaps
         antialias={false}
