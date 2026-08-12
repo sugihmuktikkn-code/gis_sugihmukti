@@ -447,6 +447,9 @@ export default function App() {
         maxZoom={18}
         reuseMaps
         antialias={false}
+        pitchWithRotate={false}
+        dragRotate={false}
+        fadeDuration={0}
         onClick={(e: any) => {
           if (navigationRoute) {
             // Lock map clicks during active navigation mode
